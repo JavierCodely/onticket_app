@@ -1,0 +1,138 @@
+/**
+ * DashboardPage Page Component
+ * Main dashboard showing user information and role
+ *
+ * Atomic Design Level: Page
+ * Features: Display user info, role, club assignment, and logout
+ */
+
+import React from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { useNavigate } from 'react-router-dom';
+import { LogOut, User, Shield, Building2 } from 'lucide-react';
+
+/**
+ * Role badge color mapping
+ */
+const getRoleBadgeVariant = (role: string) => {
+  switch (role) {
+    case 'Admin':
+      return 'default';
+    case 'Bartender':
+      return 'secondary';
+    case 'Seguridad':
+      return 'destructive';
+    case 'RRPP':
+      return 'outline';
+    default:
+      return 'secondary';
+  }
+};
+
+/**
+ * DashboardPage component
+ * Displays authenticated user information and provides logout functionality
+ */
+export const DashboardPage: React.FC = () => {
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate('/login');
+  };
+
+  if (!user) {
+    return null;
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 p-4">
+      <div className="max-w-4xl mx-auto space-y-6 py-8">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+            <p className="text-muted-foreground">Bienvenido al sistema OnTicket</p>
+          </div>
+          <Button onClick={handleLogout} variant="outline" size="sm">
+            <LogOut className="mr-2 h-4 w-4" />
+            Cerrar sesión
+          </Button>
+        </div>
+
+        {/* User Information Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <User className="mr-2 h-5 w-5" />
+              Información del Usuario
+            </CardTitle>
+            <CardDescription>
+              Detalles de tu cuenta y asignación
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Email */}
+            <div className="flex items-center justify-between py-3 border-b">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Correo electrónico
+                </p>
+                <p className="text-lg font-semibold">{user.email}</p>
+              </div>
+            </div>
+
+            {/* Role */}
+            <div className="flex items-center justify-between py-3 border-b">
+              <div className="flex-1">
+                <p className="text-sm font-medium text-muted-foreground mb-2">
+                  Rol asignado
+                </p>
+                <div className="flex items-center">
+                  <Shield className="mr-2 h-4 w-4 text-muted-foreground" />
+                  <Badge variant={getRoleBadgeVariant(user.role || '')}>
+                    {user.role}
+                  </Badge>
+                </div>
+              </div>
+            </div>
+
+            {/* Club ID */}
+            <div className="flex items-center justify-between py-3">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Club asignado
+                </p>
+                <div className="flex items-center mt-2">
+                  <Building2 className="mr-2 h-4 w-4 text-muted-foreground" />
+                  <p className="text-sm font-mono bg-muted px-2 py-1 rounded">
+                    {user.club_id}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Welcome Message */}
+        <Card className="bg-primary text-primary-foreground">
+          <CardContent className="pt-6">
+            <div className="space-y-2">
+              <h3 className="text-xl font-semibold">
+                ¡Bienvenido, {user.email}!
+              </h3>
+              <p className="text-primary-foreground/90">
+                Has iniciado sesión exitosamente con el rol de {user.role}.
+                El sistema está listo para usar.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+};

@@ -1,0 +1,129 @@
+/**
+ * App Component
+ * Main application component with routing and authentication
+ *
+ * Architecture:
+ * - BrowserRouter for client-side routing
+ * - AuthProvider for global authentication state
+ * - Role-based routing (Admin, Bartender, Seguridad, RRPP)
+ * - Protected routes for authenticated users
+ * - Public login route
+ */
+
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { lazy, Suspense } from 'react';
+import { AuthProvider } from '@/contexts/AuthContext';
+import { ProtectedRoute } from '@/components/ProtectedRoute';
+import { RoleBasedRedirect } from '@/components/RoleBasedRedirect';
+
+// Public routes - loaded immediately
+import { LoginPage } from '@/pages/auth';
+
+// Protected routes - lazy loaded only when authenticated
+const AdminDashboard = lazy(() => import('@/pages/admin/dashboard').then(m => ({ default: m.DashboardPage })));
+const InformacionPage = lazy(() => import('@/pages/admin/informacion').then(m => ({ default: m.InformacionPage })));
+const ProductosPage = lazy(() => import('@/pages/admin/productos').then(m => ({ default: m.ProductosPage })));
+const InicioCierrePage = lazy(() => import('@/pages/admin/inicio-cierre').then(m => ({ default: m.InicioCierrePage })));
+const VentasPage = lazy(() => import('@/pages/admin/ventas').then(m => ({ default: m.VentasPage })));
+const GastosPage = lazy(() => import('@/pages/admin/gastos').then(m => ({ default: m.GastosPage })));
+const CalendarioPage = lazy(() => import('@/pages/admin/calendario').then(m => ({ default: m.CalendarioPage })));
+const EmpleadosPage = lazy(() => import('@/pages/admin/empleados').then(m => ({ default: m.EmpleadosPage })));
+const ConfiguracionesPage = lazy(() => import('@/pages/admin/configuraciones').then(m => ({ default: m.ConfiguracionesPage })));
+const BartenderDashboard = lazy(() => import('@/pages/bartender/dashboard').then(m => ({ default: m.DashboardPage })));
+
+// Loading fallback component
+const LoadingFallback = () => (
+  <div className="min-h-screen flex items-center justify-center">
+    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+  </div>
+);
+
+function App() {
+  return (
+    <BrowserRouter>
+      <AuthProvider>
+        <Routes>
+          {/* Public route - Login */}
+          <Route path="/login" element={<LoginPage />} />
+
+          {/* Root - Redirect based on role */}
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <RoleBasedRedirect />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Admin Routes */}
+          <Route
+            path="/admin/*"
+            element={
+              <ProtectedRoute>
+                <Suspense fallback={<LoadingFallback />}>
+                  <Routes>
+                    <Route path="/" element={<AdminDashboard />} />
+                    <Route path="informacion" element={<InformacionPage />} />
+                    <Route path="productos" element={<ProductosPage />} />
+                    <Route path="inicio-cierre" element={<InicioCierrePage />} />
+                    <Route path="ventas" element={<VentasPage />} />
+                    <Route path="gastos" element={<GastosPage />} />
+                    <Route path="calendario" element={<CalendarioPage />} />
+                    <Route path="empleados" element={<EmpleadosPage />} />
+                    <Route path="configuraciones" element={<ConfiguracionesPage />} />
+                    <Route path="*" element={<Navigate to="/admin" replace />} />
+                  </Routes>
+                </Suspense>
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Bartender Routes */}
+          <Route
+            path="/bartender/*"
+            element={
+              <ProtectedRoute>
+                <Suspense fallback={<LoadingFallback />}>
+                  <Routes>
+                    <Route path="/" element={<BartenderDashboard />} />
+                    <Route path="*" element={<Navigate to="/bartender" replace />} />
+                  </Routes>
+                </Suspense>
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Seguridad Routes (placeholder) */}
+          <Route
+            path="/seguridad/*"
+            element={
+              <ProtectedRoute>
+                <div className="min-h-screen flex items-center justify-center">
+                  <h1 className="text-2xl font-bold">Dashboard de Seguridad (En desarrollo)</h1>
+                </div>
+              </ProtectedRoute>
+            }
+          />
+
+          {/* RRPP Routes (placeholder) */}
+          <Route
+            path="/rrpp/*"
+            element={
+              <ProtectedRoute>
+                <div className="min-h-screen flex items-center justify-center">
+                  <h1 className="text-2xl font-bold">Dashboard de RRPP (En desarrollo)</h1>
+                </div>
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Catch all - redirect to home */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </AuthProvider>
+    </BrowserRouter>
+  );
+}
+
+export default App;
