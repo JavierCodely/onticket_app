@@ -42,9 +42,9 @@ export const DashboardPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm sticky top-0 z-10">
+      <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div>
@@ -69,13 +69,13 @@ export const DashboardPage: React.FC = () => {
       <main className="container mx-auto px-4 py-8">
         <div className="space-y-6">
           {/* Welcome Card */}
-          <Card className="bg-gradient-to-r from-purple-500 to-purple-600 text-white border-0">
+          <Card className="bg-primary text-primary-foreground border-0">
             <CardContent className="pt-6">
               <div className="space-y-2">
                 <h2 className="text-2xl font-bold">
                   ¡Bienvenido, {user.email}!
                 </h2>
-                <p className="text-purple-100">
+                <p className="opacity-90">
                   Panel de ventas de {user.club.nombre}
                 </p>
               </div>

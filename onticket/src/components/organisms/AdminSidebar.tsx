@@ -16,6 +16,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import {
   LayoutDashboard,
   Package,
+  Package2,
+  Tag,
   DoorOpen,
   ShoppingCart,
   TrendingDown,
@@ -49,6 +51,16 @@ const navItems: NavItem[] = [
     title: 'Productos',
     href: '/admin/productos',
     icon: Package,
+  },
+  {
+    title: 'Combos',
+    href: '/admin/combos',
+    icon: Package2,
+  },
+  {
+    title: 'Promociones',
+    href: '/admin/promociones',
+    icon: Tag,
   },
   {
     title: 'Inicio/Cierre',

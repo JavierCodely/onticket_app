@@ -1,0 +1,11 @@
+[plugin:vite:css] Failed to load PostCSS config (searchPath: C:/Users/Agus/Desktop/onticket/onticket): [Error] Loading PostCSS Plugin failed: Cannot find module 'C:\Users\Agus\Desktop\onticket\onticket\node_modules\autoprefixer\lib\autoprefixer.js' imported from C:\Users\Agus\Desktop\onticket\onticket\node_modules\vite\dist\node\chunks\dep-CuuNgwUk.js
+
+(@C:\Users\Agus\Desktop\onticket\onticket\postcss.config.js)
+Error: Loading PostCSS Plugin failed: Cannot find module 'C:\Users\Agus\Desktop\onticket\onticket\node_modules\autoprefixer\lib\autoprefixer.js' imported from C:\Users\Agus\Desktop\onticket\onticket\node_modules\vite\dist\node\chunks\dep-CuuNgwUk.js
+
+(@C:\Users\Agus\Desktop\onticket\onticket\postcss.config.js)
+    at load$1 (file:///C:/Users/Agus/Desktop/onticket/onticket/node_modules/vite/dist/node/chunks/dep-CuuNgwUk.js:8551:10)
+    at async Promise.all (index 1)
+    at async plugins (file:///C:/Users/Agus/Desktop/onticket/onticket/node_modules/vite/dist/node/chunks/dep-CuuNgwUk.js:8573:11)
+    at async processResult (file:///C:/Users/Agus/Desktop/onticket/onticket/node_modules/vite/dist/node/chunks/dep-CuuNgwUk.js:8612:13)
+C:/Users/Agus/Desktop/onticket/onticket/src/index.css

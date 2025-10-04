@@ -19,7 +19,8 @@ export interface AuthTemplateProps {
  */
 export const AuthTemplate: React.FC<AuthTemplateProps> = ({ children }) => {
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-4">
+    <div className="min-h-screen w-full flex items-center justify-center bg-background p-4">
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-primary/10 to-primary/5 -z-10" />
       {children}
     </div>
   );

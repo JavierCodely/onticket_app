@@ -1,12 +1,12 @@
 /**
  * Configuraciones Page
- * Placeholder for settings section
+ * System settings and theme configuration
  */
 
 import React from 'react';
 import { AdminLayout } from '@/components/templates/AdminLayout';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Settings } from 'lucide-react';
+import { ThemeConfigurator } from './components/ThemeConfigurator';
 
 export const ConfiguracionesPage: React.FC = () => {
   return (
@@ -18,26 +18,11 @@ export const ConfiguracionesPage: React.FC = () => {
             Configuraciones
           </h1>
           <p className="text-muted-foreground">
-            Configuración del sistema
+            Personaliza la apariencia del sistema
           </p>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Settings className="h-5 w-5" />
-              Sección de Configuraciones
-            </CardTitle>
-            <CardDescription>
-              Esta sección permitirá configurar el sistema y preferencias del club
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">
-              En desarrollo...
-            </p>
-          </CardContent>
-        </Card>
+        <ThemeConfigurator />
       </div>
     </AdminLayout>
   );

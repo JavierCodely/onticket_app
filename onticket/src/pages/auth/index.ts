@@ -2,4 +2,4 @@
  * Auth Pages Exports
  */
 
-export { LoginPage } from './login';
+export { LoginPage } from './login/LoginPage';

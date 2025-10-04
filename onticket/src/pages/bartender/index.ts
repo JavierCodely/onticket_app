@@ -2,4 +2,4 @@
  * Bartender Pages Exports
  */
 
-export { DashboardPage } from './dashboard';
+export { DashboardPage } from './dashboard/DashboardPage';

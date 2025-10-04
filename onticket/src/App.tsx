@@ -13,6 +13,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
 import { AuthProvider } from '@/contexts/AuthContext';
+import { ThemeProvider } from '@/components/ThemeProvider';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { RoleBasedRedirect } from '@/components/RoleBasedRedirect';
 
@@ -20,16 +21,18 @@ import { RoleBasedRedirect } from '@/components/RoleBasedRedirect';
 import { LoginPage } from '@/pages/auth';
 
 // Protected routes - lazy loaded only when authenticated
-const AdminDashboard = lazy(() => import('@/pages/admin/dashboard').then(m => ({ default: m.DashboardPage })));
-const InformacionPage = lazy(() => import('@/pages/admin/informacion').then(m => ({ default: m.InformacionPage })));
-const ProductosPage = lazy(() => import('@/pages/admin/productos').then(m => ({ default: m.ProductosPage })));
-const InicioCierrePage = lazy(() => import('@/pages/admin/inicio-cierre').then(m => ({ default: m.InicioCierrePage })));
-const VentasPage = lazy(() => import('@/pages/admin/ventas').then(m => ({ default: m.VentasPage })));
-const GastosPage = lazy(() => import('@/pages/admin/gastos').then(m => ({ default: m.GastosPage })));
-const CalendarioPage = lazy(() => import('@/pages/admin/calendario').then(m => ({ default: m.CalendarioPage })));
-const EmpleadosPage = lazy(() => import('@/pages/admin/empleados').then(m => ({ default: m.EmpleadosPage })));
-const ConfiguracionesPage = lazy(() => import('@/pages/admin/configuraciones').then(m => ({ default: m.ConfiguracionesPage })));
-const BartenderDashboard = lazy(() => import('@/pages/bartender/dashboard').then(m => ({ default: m.DashboardPage })));
+const AdminDashboard = lazy(() => import('@/pages/admin/dashboard/DashboardPage').then(m => ({ default: m.DashboardPage })));
+const InformacionPage = lazy(() => import('@/pages/admin/informacion/InformacionPage').then(m => ({ default: m.InformacionPage })));
+const ProductosPage = lazy(() => import('@/pages/admin/productos/ProductosPage').then(m => ({ default: m.ProductosPage })));
+const InicioCierrePage = lazy(() => import('@/pages/admin/inicio-cierre/InicioCierrePage').then(m => ({ default: m.InicioCierrePage })));
+const VentasPage = lazy(() => import('@/pages/admin/ventas/VentasPage').then(m => ({ default: m.VentasPage })));
+const GastosPage = lazy(() => import('@/pages/admin/gastos/GastosPage').then(m => ({ default: m.GastosPage })));
+const CalendarioPage = lazy(() => import('@/pages/admin/calendario/CalendarioPage').then(m => ({ default: m.CalendarioPage })));
+const EmpleadosPage = lazy(() => import('@/pages/admin/empleados/EmpleadosPage').then(m => ({ default: m.EmpleadosPage })));
+const ConfiguracionesPage = lazy(() => import('@/pages/admin/configuraciones/ConfiguracionesPage').then(m => ({ default: m.ConfiguracionesPage })));
+const CombosPage = lazy(() => import('@/pages/admin/combos/CombosPage').then(m => ({ default: m.CombosPage })));
+const PromocionesPage = lazy(() => import('@/pages/admin/promociones/PromocionesPage').then(m => ({ default: m.PromocionesPage })));
+const BartenderDashboard = lazy(() => import('@/pages/bartender/dashboard/DashboardPage').then(m => ({ default: m.DashboardPage })));
 
 // Loading fallback component
 const LoadingFallback = () => (
@@ -41,8 +44,9 @@ const LoadingFallback = () => (
 function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <Routes>
+      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        <AuthProvider>
+          <Routes>
           {/* Public route - Login */}
           <Route path="/login" element={<LoginPage />} />
 
@@ -66,6 +70,8 @@ function App() {
                     <Route path="/" element={<AdminDashboard />} />
                     <Route path="informacion" element={<InformacionPage />} />
                     <Route path="productos" element={<ProductosPage />} />
+                    <Route path="combos" element={<CombosPage />} />
+                    <Route path="promociones" element={<PromocionesPage />} />
                     <Route path="inicio-cierre" element={<InicioCierrePage />} />
                     <Route path="ventas" element={<VentasPage />} />
                     <Route path="gastos" element={<GastosPage />} />
@@ -120,8 +126,9 @@ function App() {
 
           {/* Catch all - redirect to home */}
           <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </AuthProvider>
+          </Routes>
+        </AuthProvider>
+      </ThemeProvider>
     </BrowserRouter>
   );
 }
