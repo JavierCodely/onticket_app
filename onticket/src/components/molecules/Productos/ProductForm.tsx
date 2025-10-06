@@ -41,6 +41,11 @@ const productSchema = z.object({
   precio_compra: z.number().min(0, 'El precio debe ser mayor o igual a 0'),
   precio_venta: z.number().min(0, 'El precio debe ser mayor o igual a 0'),
   stock: z.number().int().min(0, 'El stock debe ser mayor o igual a 0'),
+  min_stock: z.number().int().min(0, 'El stock mínimo debe ser mayor o igual a 0'),
+  max_stock: z.number().int().min(0, 'El stock máximo debe ser mayor o igual a 0'),
+}).refine((data) => data.max_stock >= data.min_stock, {
+  message: 'El stock máximo debe ser mayor o igual al stock mínimo',
+  path: ['max_stock'],
 });
 
 type ProductFormData = z.infer<typeof productSchema>;
@@ -74,6 +79,8 @@ export const ProductForm: React.FC<ProductFormProps> = ({
       precio_compra: producto?.precio_compra || 0,
       precio_venta: producto?.precio_venta || 0,
       stock: producto?.stock || 0,
+      min_stock: producto?.min_stock || 0,
+      max_stock: producto?.max_stock || 0,
     },
   });
 
@@ -299,6 +306,55 @@ export const ProductForm: React.FC<ProductFormProps> = ({
             <p className="text-xs text-muted-foreground">
               Puedes ajustar el stock más tarde desde el botón "Renovar Stock"
             </p>
+          </div>
+
+          {/* Stock management section */}
+          <div className="p-4 bg-muted/50 border border-border rounded-lg space-y-4">
+            <Label className="text-sm font-medium">Gestión de stock</Label>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="min_stock" className="text-sm font-medium">
+                  Stock mínimo *
+                </Label>
+                <Input
+                  id="min_stock"
+                  type="number"
+                  {...register('min_stock', { valueAsNumber: true })}
+                  disabled={isSubmitting}
+                  placeholder="0"
+                  className="bg-background"
+                  onKeyDown={handleIntegerInput}
+                />
+                {errors.min_stock && (
+                  <p className="text-sm text-destructive mt-1">{errors.min_stock.message}</p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Alerta cuando llegue a este nivel
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="max_stock" className="text-sm font-medium">
+                  Stock máximo *
+                </Label>
+                <Input
+                  id="max_stock"
+                  type="number"
+                  {...register('max_stock', { valueAsNumber: true })}
+                  disabled={isSubmitting}
+                  placeholder="0"
+                  className="bg-background"
+                  onKeyDown={handleIntegerInput}
+                />
+                {errors.max_stock && (
+                  <p className="text-sm text-destructive mt-1">{errors.max_stock.message}</p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Capacidad máxima de almacenamiento
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </div>

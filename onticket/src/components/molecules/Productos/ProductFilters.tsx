@@ -5,8 +5,9 @@
 
 import React from 'react';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search } from 'lucide-react';
+import { Search, AlertTriangle } from 'lucide-react';
 import type { CategoriaProducto } from '@/types/database/Productos';
 
 const CATEGORIAS: CategoriaProducto[] = [
@@ -25,6 +26,9 @@ interface ProductFiltersProps {
   onSearchChange: (value: string) => void;
   selectedCategory: string;
   onCategoryChange: (value: string) => void;
+  showLowStock: boolean;
+  onLowStockToggle: () => void;
+  lowStockCount?: number;
 }
 
 export const ProductFilters: React.FC<ProductFiltersProps> = ({
@@ -32,6 +36,9 @@ export const ProductFilters: React.FC<ProductFiltersProps> = ({
   onSearchChange,
   selectedCategory,
   onCategoryChange,
+  showLowStock,
+  onLowStockToggle,
+  lowStockCount = 0,
 }) => {
   return (
     <div className="flex flex-col sm:flex-row gap-3">
@@ -44,6 +51,28 @@ export const ProductFilters: React.FC<ProductFiltersProps> = ({
           className="pl-9"
         />
       </div>
+
+      <Button
+        variant={showLowStock ? "destructive" : "outline"}
+        onClick={onLowStockToggle}
+        className={`w-full sm:w-auto ${
+          showLowStock 
+            ? 'bg-red-500 hover:bg-red-600 text-white' 
+            : 'hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950 dark:hover:text-red-400'
+        }`}
+      >
+        <AlertTriangle className="h-4 w-4 mr-2" />
+        Stock Bajo
+        {lowStockCount > 0 && (
+          <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-bold ${
+            showLowStock 
+              ? 'bg-white/20 text-white' 
+              : 'bg-red-500 text-white'
+          }`}>
+            {lowStockCount}
+          </span>
+        )}
+      </Button>
 
       <Select value={selectedCategory} onValueChange={onCategoryChange}>
         <SelectTrigger className="w-full sm:w-[200px]">

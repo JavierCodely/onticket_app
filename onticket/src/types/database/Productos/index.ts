@@ -27,6 +27,8 @@ export interface Producto {
   precio_compra: number;
   precio_venta: number;
   stock: number;
+  min_stock: number;
+  max_stock: number;
   imagen_url?: string | null;
   created_at: string;
   updated_at: string;
@@ -42,6 +44,8 @@ export interface ProductoInsert {
   precio_compra: number;
   precio_venta: number;
   stock: number;
+  min_stock: number;
+  max_stock: number;
   imagen_url?: string | null;
 }
 
@@ -54,6 +58,8 @@ export interface ProductoUpdate {
   precio_compra?: number;
   precio_venta?: number;
   stock?: number;
+  min_stock?: number;
+  max_stock?: number;
   imagen_url?: string | null;
 }
 
@@ -66,6 +72,8 @@ export interface ProductoFormData {
   precio_compra: number;
   precio_venta: number;
   stock: number;
+  min_stock: number;
+  max_stock: number;
 }
 
 /**

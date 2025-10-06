@@ -28,14 +28,30 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     ? ((producto.precio_venta - producto.precio_compra) / producto.precio_compra) * 100
     : 0;
 
+  // Check if product has low stock
+  const isLowStock = producto.min_stock > 0 && producto.stock <= producto.min_stock;
+
   return (
-    <Card className="overflow-hidden hover:shadow-lg transition-all duration-200 border-l-4 border-l-primary">
-      <CardHeader className="pb-3 bg-primary text-primary-foreground">
+    <Card className={`overflow-hidden hover:shadow-lg transition-all duration-200 border-l-4 ${
+      isLowStock 
+        ? 'border-l-red-500 border-2 border-red-500 shadow-red-100 dark:shadow-red-900/20' 
+        : 'border-l-primary'
+    }`}>
+      <CardHeader className={`pb-3 ${
+        isLowStock 
+          ? 'bg-red-500 text-white' 
+          : 'bg-primary text-primary-foreground'
+      }`}>
         <div className="flex items-start justify-between">
           <div className="flex-1">
             <h3 className="font-semibold text-lg truncate">{producto.nombre}</h3>
             <p className="text-sm font-medium opacity-90">{producto.categoria}</p>
           </div>
+          {isLowStock && (
+            <div className="ml-2 px-2 py-1 bg-white/20 rounded text-xs font-bold">
+              ¡STOCK BAJO!
+            </div>
+          )}
         </div>
       </CardHeader>
 

@@ -46,6 +46,7 @@ export const ProductosPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [showLowStock, setShowLowStock] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
 
   // Modal states
@@ -98,8 +99,13 @@ export const ProductosPage: React.FC = () => {
       filtered = filtered.filter((p) => p.categoria === selectedCategory);
     }
 
+    // Filter by low stock
+    if (showLowStock) {
+      filtered = filtered.filter((p) => p.min_stock > 0 && p.stock <= p.min_stock);
+    }
+
     setFilteredProductos(filtered);
-  }, [productos, searchTerm, selectedCategory]);
+  }, [productos, searchTerm, selectedCategory, showLowStock]);
 
   // Create product
   const handleCreateProduct = async (data: ProductoFormData, imageFile: File | null) => {
@@ -134,6 +140,8 @@ export const ProductosPage: React.FC = () => {
         precio_compra: data.precio_compra,
         precio_venta: data.precio_venta,
         stock: data.stock,
+        min_stock: data.min_stock,
+        max_stock: data.max_stock,
         imagen_url,
       });
 
@@ -185,6 +193,8 @@ export const ProductosPage: React.FC = () => {
           precio_compra: data.precio_compra,
           precio_venta: data.precio_venta,
           stock: data.stock,
+          min_stock: data.min_stock,
+          max_stock: data.max_stock,
           imagen_url,
         })
         .eq('id', selectedProducto.id);
@@ -326,6 +336,9 @@ export const ProductosPage: React.FC = () => {
               onSearchChange={setSearchTerm}
               selectedCategory={selectedCategory}
               onCategoryChange={setSelectedCategory}
+              showLowStock={showLowStock}
+              onLowStockToggle={() => setShowLowStock(!showLowStock)}
+              lowStockCount={productos.filter((p) => p.min_stock > 0 && p.stock <= p.min_stock).length}
             />
           </div>
 

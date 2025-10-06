@@ -57,8 +57,19 @@ export const ProductTable: React.FC<ProductTableProps> = ({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {productos.map((producto) => (
-            <TableRow key={producto.id} className="hover:bg-muted/30 transition-colors">
+          {productos.map((producto) => {
+            // Check if product has low stock
+            const isLowStock = producto.min_stock > 0 && producto.stock <= producto.min_stock;
+            
+            return (
+            <TableRow 
+              key={producto.id} 
+              className={`hover:bg-muted/30 transition-colors ${
+                isLowStock 
+                  ? 'border-l-4 border-l-red-500 bg-red-50 dark:bg-red-950/20' 
+                  : ''
+              }`}
+            >
               <TableCell>
                 <div className="h-14 w-14 rounded-lg overflow-hidden bg-gradient-to-br from-muted to-muted/50 flex items-center justify-center border-2 border-border shadow-sm">
                   {producto.imagen_url ? (
@@ -72,7 +83,14 @@ export const ProductTable: React.FC<ProductTableProps> = ({
                   )}
                 </div>
               </TableCell>
-              <TableCell className="font-semibold text-foreground">{producto.nombre}</TableCell>
+              <TableCell className="font-semibold text-foreground">
+                {producto.nombre}
+                {isLowStock && (
+                  <span className="ml-2 px-2 py-0.5 bg-red-500 text-white text-xs font-bold rounded">
+                    STOCK BAJO
+                  </span>
+                )}
+              </TableCell>
               <TableCell>
                 <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20">
                   {producto.categoria}
@@ -133,7 +151,8 @@ export const ProductTable: React.FC<ProductTableProps> = ({
                 </div>
               </TableCell>
             </TableRow>
-          ))}
+            );
+          })}
         </TableBody>
       </Table>
     </div>
