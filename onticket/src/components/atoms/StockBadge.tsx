@@ -21,20 +21,20 @@ export const StockBadge: React.FC<StockBadgeProps> = ({
   const getStyles = () => {
     if (stock === 0) {
       return {
-        className: 'bg-red-100 text-red-700 border-red-300 dark:bg-red-950 dark:text-red-400 dark:border-red-800',
+        className: 'bg-red-100 text-red-800 border-red-400 dark:bg-red-950 dark:text-red-400 dark:border-red-800',
         icon: <XCircle className="h-3 w-3" />,
         label: 'Sin stock'
       };
     }
     if (stock <= lowStockThreshold) {
       return {
-        className: 'bg-orange-100 text-orange-700 border-orange-300 dark:bg-orange-950 dark:text-orange-400 dark:border-orange-800',
+        className: 'bg-orange-100 text-orange-800 border-orange-400 dark:bg-orange-950 dark:text-orange-400 dark:border-orange-800',
         icon: <AlertCircle className="h-3 w-3" />,
         label: `Stock bajo (${stock})`
       };
     }
     return {
-      className: 'bg-green-100 text-green-700 border-green-300 dark:bg-green-950 dark:text-green-400 dark:border-green-800',
+      className: 'bg-green-100 text-green-800 border-green-400 dark:bg-green-950 dark:text-green-400 dark:border-green-800',
       icon: <CheckCircle className="h-3 w-3" />,
       label: `Stock: ${stock}`
     };

@@ -14,6 +14,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ThemeProvider } from '@/components/ThemeProvider';
+import { ColorThemeProvider } from '@/components/ColorThemeProvider';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { RoleBasedRedirect } from '@/components/RoleBasedRedirect';
 
@@ -45,8 +46,9 @@ function App() {
   return (
     <BrowserRouter>
       <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-        <AuthProvider>
-          <Routes>
+        <ColorThemeProvider>
+          <AuthProvider>
+            <Routes>
           {/* Public route - Login */}
           <Route path="/login" element={<LoginPage />} />
 
@@ -126,8 +128,9 @@ function App() {
 
           {/* Catch all - redirect to home */}
           <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </AuthProvider>
+            </Routes>
+          </AuthProvider>
+        </ColorThemeProvider>
       </ThemeProvider>
     </BrowserRouter>
   );
