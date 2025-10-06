@@ -3,7 +3,7 @@
  * Inventory tracking for opening and closing stock levels
  */
 
-import { CategoriaProducto } from '../Productos';
+import type { CategoriaProducto } from '../Productos';
 
 /**
  * InicioCierre table interface
