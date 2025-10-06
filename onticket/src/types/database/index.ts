@@ -25,5 +25,15 @@ export type {
 // Sale types
 export type { Sale, SaleInsert, SaleUpdate } from './Sale';
 
+// InicioCierre types
+export type {
+  InicioCierre,
+  InicioCierreInsert,
+  InicioCierreUpdate,
+  InicioCierreFormData,
+  InicioCierreFilters,
+  InicioCierreWithProducto,
+} from './InicioCierre';
+
 // Database schema
 export type { Database } from './database';
