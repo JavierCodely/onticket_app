@@ -26,7 +26,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import type { InicioCierre } from '@/types/database/InicioCierre';
+import type { InicioCierre, InicioCierreInsert, InicioCierreUpdate } from '@/types/database/InicioCierre';
 import type { Producto } from '@/types/database/Productos';
 
 export const InicioCierrePage: React.FC = () => {
@@ -119,7 +119,7 @@ export const InicioCierrePage: React.FC = () => {
       }
 
       // Create opening records for all products
-      const registrosInicio = productos.map((producto: Producto) => ({
+      const registrosInicio: InicioCierreInsert[] = productos.map((producto: Producto) => ({
         club_id: user.club.id,
         producto_id: producto.id,
         nombre_producto: producto.nombre,
@@ -167,12 +167,14 @@ export const InicioCierrePage: React.FC = () => {
       }
 
       // Update closing record
+      const updateData: InicioCierreUpdate = {
+        stock_cierre: producto.stock,
+        fecha_cierre: new Date().toISOString(),
+      };
+
       const { error: updateError } = await supabase
         .from('inicioycierre')
-        .update({
-          stock_cierre: producto.stock,
-          fecha_cierre: new Date().toISOString(),
-        })
+        .update(updateData)
         .eq('id', registro.id);
 
       if (updateError) throw updateError;
@@ -239,11 +241,13 @@ export const InicioCierrePage: React.FC = () => {
       const fechaCierre = new Date().toISOString();
 
       // Update all records at once using PostgreSQL IN clause
+      const updateFechaCierre: InicioCierreUpdate = {
+        fecha_cierre: fechaCierre,
+      };
+
       const { error: updateError } = await supabase
         .from('inicioycierre')
-        .update({
-          fecha_cierre: fechaCierre,
-        })
+        .update(updateFechaCierre)
         .in('id', registroIds)
         .is('fecha_cierre', null);
 
@@ -253,14 +257,15 @@ export const InicioCierrePage: React.FC = () => {
       }
 
       // Now update stock_cierre individually (since each has different value)
-      const updatePromises = registrosAbiertos.map((registro) =>
-        supabase
+      const updatePromises = registrosAbiertos.map((registro) => {
+        const updateStockCierre: InicioCierreUpdate = {
+          stock_cierre: stockMap.get(registro.producto_id) || 0,
+        };
+        return supabase
           .from('inicioycierre')
-          .update({
-            stock_cierre: stockMap.get(registro.producto_id) || 0,
-          })
-          .eq('id', registro.id)
-      );
+          .update(updateStockCierre)
+          .eq('id', registro.id);
+      });
 
       const results = await Promise.all(updatePromises);
       const errors = results.filter((r) => r.error);
