@@ -10,7 +10,7 @@
  * - No admin components loaded on login screen
  */
 
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ColorThemeProvider } from '@/components/ColorThemeProvider';
