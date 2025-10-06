@@ -32,9 +32,6 @@ export const ProfitBadge: React.FC<ProfitBadgeProps> = ({
     // Round to 2 decimal places to avoid floating point errors
     const rounded = Math.round(markup * 100) / 100;
 
-    // Debug: log the calculation
-    console.log(`[ProfitBadge] Compra: $${precioCompra}, Venta: $${precioVenta}, Markup: ${rounded}%`);
-
     return rounded;
   };
 

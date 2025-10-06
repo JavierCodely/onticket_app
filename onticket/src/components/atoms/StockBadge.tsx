@@ -18,28 +18,34 @@ export const StockBadge: React.FC<StockBadgeProps> = ({
   showIcon = false,
   lowStockThreshold = 10,
 }) => {
-  const getVariant = () => {
-    if (stock === 0) return 'destructive'; // Red for out of stock
-    if (stock <= lowStockThreshold) return 'outline'; // Yellow/warning for low stock
-    return 'secondary'; // Green for good stock
+  const getStyles = () => {
+    if (stock === 0) {
+      return {
+        className: 'bg-red-100 text-red-700 border-red-300 dark:bg-red-950 dark:text-red-400 dark:border-red-800',
+        icon: <XCircle className="h-3 w-3" />,
+        label: 'Sin stock'
+      };
+    }
+    if (stock <= lowStockThreshold) {
+      return {
+        className: 'bg-orange-100 text-orange-700 border-orange-300 dark:bg-orange-950 dark:text-orange-400 dark:border-orange-800',
+        icon: <AlertCircle className="h-3 w-3" />,
+        label: `Stock bajo (${stock})`
+      };
+    }
+    return {
+      className: 'bg-green-100 text-green-700 border-green-300 dark:bg-green-950 dark:text-green-400 dark:border-green-800',
+      icon: <CheckCircle className="h-3 w-3" />,
+      label: `Stock: ${stock}`
+    };
   };
 
-  const getIcon = () => {
-    if (stock === 0) return <XCircle className="h-3 w-3" />;
-    if (stock <= lowStockThreshold) return <AlertCircle className="h-3 w-3" />;
-    return <CheckCircle className="h-3 w-3" />;
-  };
-
-  const getLabel = () => {
-    if (stock === 0) return 'Sin stock';
-    if (stock <= lowStockThreshold) return `Stock bajo (${stock})`;
-    return `Stock: ${stock}`;
-  };
+  const styles = getStyles();
 
   return (
-    <Badge variant={getVariant()} className="gap-1">
-      {showIcon && getIcon()}
-      {getLabel()}
+    <Badge className={`gap-1 border font-medium ${styles.className}`}>
+      {showIcon && styles.icon}
+      {styles.label}
     </Badge>
   );
 };
