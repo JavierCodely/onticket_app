@@ -14,8 +14,8 @@ export default defineConfig({
     // No generar source maps en producción (seguridad)
     sourcemap: false,
     
-    // Minificación agresiva
-    minify: 'terser',
+    // Minificación con esbuild (más rápido que terser)
+    minify: 'esbuild',
     
     // Optimización de chunks
     rollupOptions: {

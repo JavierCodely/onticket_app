@@ -8,6 +8,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { StockBadge } from '@/components/atoms/StockBadge';
@@ -35,6 +36,7 @@ export const StockRenewalForm: React.FC<StockRenewalFormProps> = ({
   isSubmitting = false,
 }) => {
   const {
+    register,
     control,
     handleSubmit,
     watch,
