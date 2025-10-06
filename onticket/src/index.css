@@ -58,6 +58,11 @@
     border-color: hsl(var(--border));
   }
 
+  html {
+    /* Ajuste de escala para que se vea al 67% */
+    font-size: 67%;
+  }
+
   body {
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
