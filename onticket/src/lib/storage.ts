@@ -10,6 +10,31 @@ export const STORAGE_BUCKETS = {
 } as const
 
 /**
+ * Validate image file type and size
+ */
+function validateImageFile(file: File): { valid: boolean; error?: string } {
+  // Validate file type
+  const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
+  if (!validTypes.includes(file.type)) {
+    return {
+      valid: false,
+      error: `Tipo de archivo no soportado: ${file.type}. Usa JPG, PNG, GIF o WebP.`
+    }
+  }
+
+  // Validate file size (max 5MB)
+  const maxSize = 5 * 1024 * 1024 // 5MB in bytes
+  if (file.size > maxSize) {
+    return {
+      valid: false,
+      error: `El archivo es demasiado grande: ${(file.size / 1024 / 1024).toFixed(2)}MB. Máximo: 5MB.`
+    }
+  }
+
+  return { valid: true }
+}
+
+/**
  * Upload image to Supabase Storage
  * @param bucket - Storage bucket name
  * @param file - File to upload
@@ -22,31 +47,50 @@ export async function uploadImage(
   clubId: string
 ): Promise<{ url: string | null; error: Error | null }> {
   try {
+    // Validate file
+    const validation = validateImageFile(file)
+    if (!validation.valid) {
+      throw new Error(validation.error)
+    }
+
     // Generate unique filename with timestamp
     const timestamp = Date.now()
-    const fileExt = file.name.split('.').pop()
+    const fileExt = file.name.split('.').pop()?.toLowerCase() || 'png'
     const fileName = `${clubId}/${timestamp}.${fileExt}`
 
-    // Upload file to storage
+    console.log('[Storage] Uploading image:', {
+      bucket,
+      fileName,
+      fileType: file.type,
+      fileSize: `${(file.size / 1024).toFixed(2)}KB`
+    })
+
+    // Upload file to storage with explicit content type
     const { data, error } = await supabase.storage
       .from(bucket)
       .upload(fileName, file, {
         cacheControl: '3600',
         upsert: false,
+        contentType: file.type, // Explicitly set content type
       })
 
     if (error) {
+      console.error('[Storage] Upload error:', error)
       throw error
     }
+
+    console.log('[Storage] Upload successful:', data.path)
 
     // Get public URL
     const { data: { publicUrl } } = supabase.storage
       .from(bucket)
       .getPublicUrl(data.path)
 
+    console.log('[Storage] Public URL:', publicUrl)
+
     return { url: publicUrl, error: null }
   } catch (error) {
-    console.error('Error uploading image:', error)
+    console.error('[Storage] Error uploading image:', error)
     return { url: null, error: error as Error }
   }
 }

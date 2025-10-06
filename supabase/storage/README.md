@@ -33,25 +33,27 @@ supabase/migrations/updates/add_imagen_url_columns.sql
 
 1. Ve a **Storage** en el menú lateral de Supabase Dashboard
 2. Click en **"New bucket"**
-3. Crea estos 3 buckets:
+3. Crea estos 3 buckets con la siguiente configuración EXACTA:
 
    **Bucket 1: productos-images**
    - Name: `productos-images`
-   - Public: ✅ Activado
-   - File size limit: 5MB (opcional)
-   - Allowed MIME types: `image/*` (opcional)
+   - Public: ✅ Activado (CRÍTICO)
+   - File size limit: Dejar vacío o 5242880 (5MB)
+   - Allowed MIME types: **Dejar VACÍO** (NO poner `image/*` - debe estar completamente vacío)
 
    **Bucket 2: promociones-images**
    - Name: `promociones-images`
-   - Public: ✅ Activado
-   - File size limit: 5MB (opcional)
-   - Allowed MIME types: `image/*` (opcional)
+   - Public: ✅ Activado (CRÍTICO)
+   - File size limit: Dejar vacío
+   - Allowed MIME types: **Dejar VACÍO**
 
    **Bucket 3: combos-images**
    - Name: `combos-images`
-   - Public: ✅ Activado
-   - File size limit: 5MB (opcional)
-   - Allowed MIME types: `image/*` (opcional)
+   - Public: ✅ Activado (CRÍTICO)
+   - File size limit: Dejar vacío
+   - Allowed MIME types: **Dejar VACÍO**
+
+**🔴 IMPORTANTE:** Si pones restricciones de MIME types en el bucket, obtendrás errores de "mime type not supported". Las validaciones de tipo se manejan en el código (src/lib/storage.ts)
 
 ### Paso 3: Aplicar políticas de seguridad (SQL Editor)
 ```sql
@@ -277,6 +279,71 @@ Para verificar que los buckets se crearon correctamente:
    - `combos-images`
 
 Cada bucket debería tener:
-- **Public**: ✅ Habilitado
-- **Allowed MIME types**: Todas las imágenes
+- **Public**: ✅ Habilitado (verde)
+- **Allowed MIME types**: VACÍO (sin restricciones)
 - **Policies**: Ver las políticas creadas en la pestaña "Policies"
+
+## Solución de Problemas (Troubleshooting)
+
+### Error: "mime type image/png is not supported" (Status 400)
+
+**Causa:** El bucket tiene restricciones de MIME types configuradas incorrectamente.
+
+**Solución:**
+1. Ve a Storage en Supabase Dashboard
+2. Click en el bucket `productos-images`
+3. Click en el icono de engranaje (⚙️) o "Configuration"
+4. En "Allowed MIME types" debe estar **COMPLETAMENTE VACÍO**
+5. Si tiene algún valor (como `image/*`), bórralo
+6. Click en "Save"
+7. Prueba subir la imagen nuevamente
+
+### Error: "new row violates row-level security policy"
+
+**Causa:** Las políticas RLS no están creadas o el usuario no tiene rol Admin.
+
+**Solución:**
+1. Verifica que ejecutaste `supabase/storage/policies.sql`
+2. Verifica que tu usuario tiene rol 'Admin' en la tabla `personal`
+3. Verifica que `club_id` coincide con el club del usuario
+
+### La imagen no se visualiza después de subirla
+
+**Causa:** El bucket no es público.
+
+**Solución:**
+1. Ve a Storage → Click en el bucket
+2. Click en Configuration
+3. Asegúrate que "Public bucket" esté en ON (verde)
+4. Click en Save
+
+### Error: "Bucket not found"
+
+**Causa:** El bucket no existe en Supabase.
+
+**Solución:**
+1. Ve a Storage en Supabase Dashboard
+2. Verifica que existe un bucket llamado exactamente `productos-images`
+3. Si no existe, créalo siguiendo el Paso 2 de esta guía
+
+### Las validaciones de archivo no funcionan
+
+**Causa:** El código de validación en `storage.ts` puede tener problemas.
+
+**Solución:**
+1. Abre la consola del navegador (F12)
+2. Mira los logs que empiezan con `[Storage]`
+3. Verifica el tipo de archivo y tamaño que se está intentando subir
+4. Asegúrate que el archivo es realmente una imagen válida (JPG, PNG, GIF, WebP)
+
+### Verificar si el problema está en el código o en Supabase
+
+```javascript
+// Ejecuta esto en la consola del navegador después de seleccionar una imagen
+// Esto mostrará detalles del archivo que se está intentando subir
+console.log('[Debug] File details:', {
+  name: file.name,
+  type: file.type,
+  size: `${(file.size / 1024).toFixed(2)} KB`
+})
+```
