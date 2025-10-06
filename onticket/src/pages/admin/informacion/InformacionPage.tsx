@@ -37,13 +37,13 @@ export const InformacionPage: React.FC = () => {
         </div>
 
         {/* Welcome Card */}
-        <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white border-0">
+        <Card className="bg-primary text-primary-foreground border-0">
           <CardContent className="pt-6">
             <div className="space-y-2">
               <h2 className="text-2xl font-bold">
                 ¡Bienvenido, {adminName}!
               </h2>
-              <p className="text-blue-100">
+              <p className="opacity-90">
                 Panel de administración de {user.club.nombre}
               </p>
             </div>
@@ -64,19 +64,19 @@ export const InformacionPage: React.FC = () => {
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">Efectivo</span>
-                <span className="text-lg font-bold text-green-600">
+                <span className="text-lg font-bold text-foreground">
                   ${user.club.cuenta_efectivo.toFixed(2)}
                 </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">Billetera Virtual</span>
-                <span className="text-lg font-bold text-blue-600">
+                <span className="text-lg font-bold text-foreground">
                   ${user.club.cuenta_billetera_virtual.toFixed(2)}
                 </span>
               </div>
               <div className="flex items-center justify-between pt-4 border-t">
                 <span className="text-sm font-medium">Total</span>
-                <span className="text-xl font-bold">
+                <span className="text-xl font-bold text-primary">
                   ${(user.club.cuenta_efectivo + user.club.cuenta_billetera_virtual).toFixed(2)}
                 </span>
               </div>

@@ -1,35 +1,32 @@
 /**
- * Configuraciones Page
- * Placeholder for settings section
+ * Promociones Page
+ * Placeholder for promotions management section
  */
 
 import React from 'react';
 import { AdminLayout } from '@/components/templates/AdminLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Settings } from 'lucide-react';
+import { Tag } from 'lucide-react';
 
-export const ConfiguracionesPage: React.FC = () => {
+export const PromocionesPage: React.FC = () => {
   return (
     <AdminLayout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-            <Settings className="h-8 w-8" />
-            Configuraciones
-          </h1>
+          <h1 className="text-3xl font-bold tracking-tight">Promociones</h1>
           <p className="text-muted-foreground">
-            Configuración del sistema
+            Gestión de promociones y descuentos
           </p>
         </div>
 
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Settings className="h-5 w-5" />
-              Sección de Configuraciones
+              <Tag className="h-5 w-5" />
+              Futuramente sección de Promociones
             </CardTitle>
             <CardDescription>
-              Esta sección permitirá configurar el sistema y preferencias del club
+              Esta sección permitirá crear y gestionar promociones especiales
             </CardDescription>
           </CardHeader>
           <CardContent>
