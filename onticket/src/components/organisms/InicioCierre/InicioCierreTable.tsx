@@ -15,6 +15,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Package, CheckCircle, Clock } from 'lucide-react';
+import { getCategoryBadgeClass } from '@/lib/category-colors';
 import type { InicioCierre } from '@/types/database/InicioCierre';
 
 interface InicioCierreTableProps {
@@ -79,7 +80,7 @@ export const InicioCierreTable: React.FC<InicioCierreTableProps> = ({
                   {registro.nombre_producto}
                 </TableCell>
                 <TableCell>
-                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20">
+                  <span className={getCategoryBadgeClass(registro.categoria)}>
                     {registro.categoria}
                   </span>
                 </TableCell>
