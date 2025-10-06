@@ -2,7 +2,7 @@
  * Export utilities for downloading data as CSV
  */
 
-import type { Producto } from '@/types/database';
+import type { Producto, InicioCierre } from '@/types/database';
 
 /**
  * Export products to CSV file
@@ -41,6 +41,76 @@ export function exportProductsToCSV(productos: Producto[], filename: string = 'p
       gananciaUnitaria.toFixed(2),
       valorStockCompra.toFixed(2),
       valorStockVenta.toFixed(2),
+    ];
+  });
+
+  // Combine headers and rows
+  const csvContent = [
+    headers.join(','),
+    ...rows.map((row) =>
+      row.map((cell) => `"${cell.toString().replace(/"/g, '""')}"`).join(',')
+    ),
+  ].join('\n');
+
+  // Create blob and download
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  const url = URL.createObjectURL(blob);
+
+  link.setAttribute('href', url);
+  link.setAttribute('download', filename);
+  link.style.visibility = 'hidden';
+
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+/**
+ * Export inventory opening/closing records to CSV file
+ */
+export function exportInicioCierreToCSV(
+  registros: InicioCierre[],
+  filename: string = 'inicioycierre.csv'
+) {
+  // Define CSV headers
+  const headers = [
+    'Producto',
+    'Categoría',
+    'Fecha Inicio',
+    'Fecha Cierre',
+    'Stock Inicio',
+    'Stock Cierre',
+    'Total Vendido',
+    'Estado',
+  ];
+
+  // Helper to format date
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return '-';
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('es-AR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(date);
+  };
+
+  // Convert records to CSV rows
+  const rows = registros.map((registro) => {
+    const estado = registro.fecha_cierre ? 'Cerrado' : 'Abierto';
+
+    return [
+      registro.nombre_producto,
+      registro.categoria,
+      formatDate(registro.fecha_inicio),
+      formatDate(registro.fecha_cierre),
+      registro.stock_inicio.toString(),
+      registro.stock_cierre?.toString() || '-',
+      registro.total_vendido.toString(),
+      estado,
     ];
   });
 

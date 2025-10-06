@@ -12,6 +12,7 @@ import { StockBadge } from '@/components/atoms/StockBadge';
 import { FormattedCurrency } from '@/components/atoms/FormattedCurrency';
 import { useCurrency } from '@/hooks/useCurrency';
 import { getPriceForCurrency, calculateProfitMargin } from '@/lib/currency-utils';
+import { getCategoryBadgeClass } from '@/lib/category-colors';
 import type { Producto } from '@/types/database/Productos';
 
 interface ProductCardProps {
@@ -44,9 +45,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         : 'border-l-primary'
     }`}>
       <CardHeader className="pb-3">
-        <div className="text-center space-y-1">
+        <div className="text-center space-y-2">
           <h3 className="font-semibold text-lg">{producto.nombre}</h3>
-          <p className="text-sm text-muted-foreground">{producto.categoria}</p>
+          <div>
+            <span className={getCategoryBadgeClass(producto.categoria)}>
+              {producto.categoria}
+            </span>
+          </div>
           {isLowStock && (
             <div className="inline-block px-3 py-1 bg-red-500 text-white rounded-full text-xs font-bold mt-2">
               ¡STOCK BAJO!

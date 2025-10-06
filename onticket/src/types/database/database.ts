@@ -7,6 +7,7 @@ import type { Club, ClubInsert, ClubUpdate } from './Club';
 import type { Personal, PersonalInsert, PersonalUpdate } from './Personal';
 import type { Producto, ProductoInsert, ProductoUpdate } from './Productos';
 import type { Sale, SaleInsert, SaleUpdate } from './Sale';
+import type { InicioCierre, InicioCierreInsert, InicioCierreUpdate } from './InicioCierre';
 
 /**
  * Database schema type for Supabase client
@@ -34,6 +35,11 @@ export interface Database {
         Row: Sale;
         Insert: SaleInsert;
         Update: SaleUpdate;
+      };
+      inicioycierre: {
+        Row: InicioCierre;
+        Insert: InicioCierreInsert;
+        Update: InicioCierreUpdate;
       };
     };
   };

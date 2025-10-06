@@ -19,6 +19,7 @@ import { StockBadge } from '@/components/atoms/StockBadge';
 import { FormattedCurrency } from '@/components/atoms/FormattedCurrency';
 import { useCurrency } from '@/hooks/useCurrency';
 import { getPriceForCurrency } from '@/lib/currency-utils';
+import { getCategoryBadgeClass } from '@/lib/category-colors';
 import type { Producto } from '@/types/database/Productos';
 
 interface ProductTableProps {
@@ -101,7 +102,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({
                 )}
               </TableCell>
               <TableCell>
-                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20">
+                <span className={getCategoryBadgeClass(producto.categoria)}>
                   {producto.categoria}
                 </span>
               </TableCell>
