@@ -32,7 +32,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
 }) => {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl p-0 gap-0 bg-background">
+      <DialogContent className="max-w-[95vw] w-[95vw] max-h-[90vh] p-0 gap-0 bg-background">
         <div className="px-6 py-4 border-b bg-background">
           <DialogHeader>
             <DialogTitle className="text-xl">
@@ -46,16 +46,14 @@ export const ProductModal: React.FC<ProductModalProps> = ({
           </DialogHeader>
         </div>
 
-        <ScrollArea className="max-h-[calc(90vh-8rem)]">
-          <div className="px-6 py-4 bg-background">
-            <ProductForm
-              producto={producto}
-              onSubmit={onSubmit}
-              onCancel={() => onOpenChange(false)}
-              isSubmitting={isSubmitting}
-            />
-          </div>
-        </ScrollArea>
+        <div className="px-6 py-6 bg-background overflow-y-auto max-h-[calc(90vh-8rem)]">
+          <ProductForm
+            producto={producto}
+            onSubmit={onSubmit}
+            onCancel={() => onOpenChange(false)}
+            isSubmitting={isSubmitting}
+          />
+        </div>
       </DialogContent>
     </Dialog>
   );

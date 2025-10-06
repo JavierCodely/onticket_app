@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { StockBadge } from '@/components/atoms/StockBadge';
+import { NumberInput } from '@/components/atoms/NumberInput';
 import type { Producto } from '@/types/database/Productos';
 
 const stockRenewalSchema = z.object({
@@ -36,6 +37,7 @@ export const StockRenewalForm: React.FC<StockRenewalFormProps> = ({
 }) => {
   const {
     register,
+    control,
     handleSubmit,
     watch,
     setValue,
@@ -56,31 +58,6 @@ export const StockRenewalForm: React.FC<StockRenewalFormProps> = ({
       return producto.stock + (cantidad || 0);
     }
     return cantidad || 0;
-  };
-
-  // Handler for integer-only input (stock)
-  const handleIntegerInput = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    const key = e.key;
-
-    // Allow: backspace, delete, tab, escape, enter
-    if (['Backspace', 'Delete', 'Tab', 'Escape', 'Enter'].includes(key)) {
-      return;
-    }
-
-    // Allow: Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
-    if (e.ctrlKey || e.metaKey) {
-      return;
-    }
-
-    // Allow: home, end, left, right, up, down arrows
-    if (['Home', 'End', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(key)) {
-      return;
-    }
-
-    // Block: if not a digit (no decimal points allowed)
-    if (!/^\d$/.test(key)) {
-      e.preventDefault();
-    }
   };
 
   return (
@@ -121,13 +98,19 @@ export const StockRenewalForm: React.FC<StockRenewalFormProps> = ({
           <Label htmlFor="cantidad">
             {tipo === 'add' ? 'Cantidad a agregar' : 'Nuevo stock total'}
           </Label>
-          <Input
-            id="cantidad"
-            type="number"
-            {...register('cantidad', { valueAsNumber: true })}
-            disabled={isSubmitting}
-            placeholder="0"
-            onKeyDown={handleIntegerInput}
+          <Controller
+            name="cantidad"
+            control={control}
+            render={({ field }) => (
+              <NumberInput
+                id="cantidad"
+                value={field.value}
+                onChange={(val) => field.onChange(val ?? 0)}
+                disabled={isSubmitting}
+                placeholder="0"
+                maxDecimals={0}
+              />
+            )}
           />
           {errors.cantidad && (
             <p className="text-sm text-destructive mt-1">{errors.cantidad.message}</p>

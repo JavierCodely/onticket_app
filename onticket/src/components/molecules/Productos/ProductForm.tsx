@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
@@ -12,8 +12,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ImageUploader } from '@/components/atoms/ImageUploader';
-import { ProfitBadge } from '@/components/atoms/ProfitBadge';
+import { NumberInput } from '@/components/atoms/NumberInput';
+import { CurrencyToggle } from '@/components/atoms/CurrencyToggle';
+import { MultiCurrencyPriceInput } from '@/components/molecules/Productos/MultiCurrencyPriceInput';
+import { useCurrency } from '@/hooks/useCurrency';
 import type { Producto, CategoriaProducto } from '@/types/database/Productos';
+import type { CurrencyCode } from '@/types/currency';
 
 const CATEGORIAS: CategoriaProducto[] = [
   'Vodka',
@@ -40,6 +44,13 @@ const productSchema = z.object({
   ] as const),
   precio_compra: z.number().min(0, 'El precio debe ser mayor o igual a 0'),
   precio_venta: z.number().min(0, 'El precio debe ser mayor o igual a 0'),
+  // Multi-currency prices
+  precio_compra_ars: z.number().min(0, 'El precio debe ser mayor o igual a 0'),
+  precio_venta_ars: z.number().min(0, 'El precio debe ser mayor o igual a 0'),
+  precio_compra_usd: z.number().min(0, 'El precio debe ser mayor o igual a 0'),
+  precio_venta_usd: z.number().min(0, 'El precio debe ser mayor o igual a 0'),
+  precio_compra_brl: z.number().min(0, 'El precio debe ser mayor o igual a 0'),
+  precio_venta_brl: z.number().min(0, 'El precio debe ser mayor o igual a 0'),
   stock: z.number().int().min(0, 'El stock debe ser mayor o igual a 0'),
   min_stock: z.number().int().min(0, 'El stock mínimo debe ser mayor o igual a 0'),
   max_stock: z.number().int().min(0, 'El stock máximo debe ser mayor o igual a 0'),
@@ -64,9 +75,26 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   isSubmitting = false,
 }) => {
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [shouldDeleteImage, setShouldDeleteImage] = useState(false);
+  const { defaultCurrency } = useCurrency();
+  
+  // Initialize active currencies based on default currency or existing product
+  const getInitialCurrencies = (): CurrencyCode[] => {
+    if (producto) {
+      const currencies: CurrencyCode[] = [];
+      if (producto.precio_venta_ars > 0 || producto.precio_compra_ars > 0) currencies.push('ARS');
+      if (producto.precio_venta_usd > 0 || producto.precio_compra_usd > 0) currencies.push('USD');
+      if (producto.precio_venta_brl > 0 || producto.precio_compra_brl > 0) currencies.push('BRL');
+      return currencies.length > 0 ? currencies : [defaultCurrency];
+    }
+    return [defaultCurrency];
+  };
+
+  const [activeCurrencies, setActiveCurrencies] = useState<CurrencyCode[]>(getInitialCurrencies());
 
   const {
     register,
+    control,
     handleSubmit,
     watch,
     setValue,
@@ -78,93 +106,54 @@ export const ProductForm: React.FC<ProductFormProps> = ({
       categoria: producto?.categoria || 'Otros',
       precio_compra: producto?.precio_compra || 0,
       precio_venta: producto?.precio_venta || 0,
+      precio_compra_ars: producto?.precio_compra_ars || 0,
+      precio_venta_ars: producto?.precio_venta_ars || 0,
+      precio_compra_usd: producto?.precio_compra_usd || 0,
+      precio_venta_usd: producto?.precio_venta_usd || 0,
+      precio_compra_brl: producto?.precio_compra_brl || 0,
+      precio_venta_brl: producto?.precio_venta_brl || 0,
       stock: producto?.stock || 0,
       min_stock: producto?.min_stock || 0,
       max_stock: producto?.max_stock || 0,
     },
   });
 
-  const precioCompra = watch('precio_compra');
-  const precioVenta = watch('precio_venta');
+  const handleImageChange = (file: File | null) => {
+    setImageFile(file);
+    if (file === null && producto?.imagen_url) {
+      // Usuario eliminó la imagen existente
+      setShouldDeleteImage(true);
+    } else {
+      setShouldDeleteImage(false);
+    }
+  };
 
   const handleFormSubmit = async (data: ProductFormData) => {
-    await onSubmit(data, imageFile);
-  };
-
-  // Handler to prevent non-numeric input in number fields
-  const handleNumericInput = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    const key = e.key;
-    const currentValue = (e.target as HTMLInputElement).value;
-
-    // Allow: backspace, delete, tab, escape, enter
-    if (['Backspace', 'Delete', 'Tab', 'Escape', 'Enter'].includes(key)) {
-      return;
-    }
-
-    // Allow: Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
-    if (e.ctrlKey || e.metaKey) {
-      return;
-    }
-
-    // Allow: home, end, left, right, up, down arrows
-    if (['Home', 'End', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(key)) {
-      return;
-    }
-
-    // Allow: decimal point (only one)
-    if (key === '.' && !currentValue.includes('.')) {
-      return;
-    }
-
-    // Block: if not a digit
-    if (!/^\d$/.test(key)) {
-      e.preventDefault();
-    }
-  };
-
-  // Handler for integer-only fields (stock)
-  const handleIntegerInput = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    const key = e.key;
-
-    // Allow: backspace, delete, tab, escape, enter
-    if (['Backspace', 'Delete', 'Tab', 'Escape', 'Enter'].includes(key)) {
-      return;
-    }
-
-    // Allow: Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
-    if (e.ctrlKey || e.metaKey) {
-      return;
-    }
-
-    // Allow: home, end, left, right, up, down arrows
-    if (['Home', 'End', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(key)) {
-      return;
-    }
-
-    // Block: if not a digit (no decimal points allowed)
-    if (!/^\d$/.test(key)) {
-      e.preventDefault();
-    }
+    // Si el usuario eliminó la imagen, pasar null explícitamente
+    const finalImageFile = shouldDeleteImage ? null : imageFile;
+    await onSubmit(data, finalImageFile);
   };
 
   return (
-    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Left column - Image and basic info */}
-        <div className="space-y-5">
-          <div className="space-y-3">
-            <Label className="text-sm font-medium">Imagen del producto</Label>
-            <div className="p-4 border border-border rounded-lg bg-card">
+    <form onSubmit={handleSubmit(handleFormSubmit)} className="h-full flex flex-col">
+      {/* Three column layout for PC */}
+      <div className="grid grid-cols-3 gap-8 flex-1 min-h-0">
+        {/* Column 1 - Basic Info */}
+        <div className="space-y-4">
+          <h3 className="text-sm font-semibold border-b pb-1.5">Información Básica</h3>
+          <div className="space-y-3.5">
+            <Label className="text-xs font-medium">Imagen del producto</Label>
+            <div className="p-3 border border-border rounded-lg bg-card">
               <ImageUploader
                 value={producto?.imagen_url}
-                onChange={setImageFile}
+                onChange={handleImageChange}
                 disabled={isSubmitting}
               />
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="nombre" className="text-sm font-medium">
+          <div className="space-y-1.5">
+            <Label htmlFor="nombre" className="text-xs font-medium">
               Nombre del producto *
             </Label>
             <Input
@@ -179,8 +168,8 @@ export const ProductForm: React.FC<ProductFormProps> = ({
             )}
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="categoria" className="text-sm font-medium">
+          <div className="space-y-1.5">
+            <Label htmlFor="categoria" className="text-xs font-medium">
               Categoría *
             </Label>
             <Select
@@ -205,153 +194,140 @@ export const ProductForm: React.FC<ProductFormProps> = ({
           </div>
         </div>
 
-        {/* Right column - Pricing and stock */}
-        <div className="space-y-5">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="precio_compra" className="text-sm font-medium">
-                Precio de compra *
-              </Label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                  $
-                </span>
-                <Input
-                  id="precio_compra"
-                  type="number"
-                  step="0.01"
-                  {...register('precio_compra', { valueAsNumber: true })}
-                  disabled={isSubmitting}
-                  placeholder="0.00"
-                  className="pl-7 bg-background"
-                  onKeyDown={handleNumericInput}
-                />
-              </div>
-              {errors.precio_compra && (
-                <p className="text-sm text-destructive mt-1">{errors.precio_compra.message}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="precio_venta" className="text-sm font-medium">
-                Precio de venta *
-              </Label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                  $
-                </span>
-                <Input
-                  id="precio_venta"
-                  type="number"
-                  step="0.01"
-                  {...register('precio_venta', { valueAsNumber: true })}
-                  disabled={isSubmitting}
-                  placeholder="0.00"
-                  className="pl-7 bg-background"
-                  onKeyDown={handleNumericInput}
-                />
-              </div>
-              {errors.precio_venta && (
-                <p className="text-sm text-destructive mt-1">{errors.precio_venta.message}</p>
-              )}
-            </div>
+        {/* Column 2 - Multi-Currency Pricing */}
+        <div className="space-y-4">
+          <h3 className="text-sm font-semibold border-b pb-1.5">Precios por Moneda</h3>
+          
+          {/* Currency Selection */}
+          <div className="space-y-2.5">
+            <Label className="text-xs font-medium">Monedas activas *</Label>
+            <CurrencyToggle
+              value={activeCurrencies}
+              onChange={setActiveCurrencies}
+              disabled={isSubmitting}
+            />
           </div>
 
-          {/* Profit calculation display */}
-          {precioCompra > 0 && precioVenta > 0 && (
-            <div className="p-4 bg-muted/50 border border-border rounded-lg space-y-3">
-              <div className="flex items-center justify-between">
-                <Label className="text-sm font-medium">Cálculo de ganancia</Label>
-                <ProfitBadge
-                  precioCompra={precioCompra}
-                  precioVenta={precioVenta}
-                  showIcon
-                />
-              </div>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between py-1">
-                  <span className="text-muted-foreground">Precio de compra:</span>
-                  <span className="font-medium">${precioCompra.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between py-1">
-                  <span className="text-muted-foreground">Precio de venta:</span>
-                  <span className="font-medium">${precioVenta.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between py-1 pt-2 border-t border-border">
-                  <span className="font-medium">Ganancia bruta:</span>
-                  <span className="font-semibold text-green-600 dark:text-green-500">
-                    ${(precioVenta - precioCompra).toFixed(2)}
-                  </span>
-                </div>
-              </div>
-            </div>
-          )}
+          {/* Multi-Currency Price Inputs */}
+          <div className="space-y-3">
+            <MultiCurrencyPriceInput
+              activeCurrencies={activeCurrencies}
+              values={{
+                ars: {
+                  compra: watch('precio_compra_ars'),
+                  venta: watch('precio_venta_ars'),
+                },
+                usd: {
+                  compra: watch('precio_compra_usd'),
+                  venta: watch('precio_venta_usd'),
+                },
+                brl: {
+                  compra: watch('precio_compra_brl'),
+                  venta: watch('precio_venta_brl'),
+                },
+              }}
+              onChange={(currency, type, value) => {
+                const lowerCode = currency.toLowerCase() as 'ars' | 'usd' | 'brl';
+                if (type === 'compra') {
+                  setValue(`precio_compra_${lowerCode}` as any, value);
+                } else {
+                  setValue(`precio_venta_${lowerCode}` as any, value);
+                }
+              }}
+              disabled={isSubmitting}
+              errors={errors as any}
+            />
+          </div>
+        </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="stock" className="text-sm font-medium">
+        {/* Column 3 - Stock Management */}
+        {/* Column 3 - Inventory Management */}
+        <div className="space-y-4">
+          <h3 className="text-sm font-semibold border-b pb-1.5">Gestión de Inventario</h3>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="stock" className="text-xs font-medium">
               Stock inicial *
             </Label>
-            <Input
-              id="stock"
-              type="number"
-              {...register('stock', { valueAsNumber: true })}
-              disabled={isSubmitting}
-              placeholder="0"
-              className="bg-background"
-              onKeyDown={handleIntegerInput}
+            <Controller
+              name="stock"
+              control={control}
+              render={({ field }) => (
+                <NumberInput
+                  id="stock"
+                  value={field.value}
+                  onChange={(val) => field.onChange(val ?? 0)}
+                  disabled={isSubmitting}
+                  placeholder="0"
+                  maxDecimals={0}
+                  className="bg-background"
+                />
+              )}
             />
             {errors.stock && (
               <p className="text-sm text-destructive mt-1">{errors.stock.message}</p>
             )}
             <p className="text-xs text-muted-foreground">
-              Puedes ajustar el stock más tarde desde el botón "Renovar Stock"
+              Cantidad de unidades disponibles
             </p>
           </div>
 
           {/* Stock management section */}
-          <div className="p-4 bg-muted/50 border border-border rounded-lg space-y-4">
-            <Label className="text-sm font-medium">Gestión de stock</Label>
+          <div className="p-3 bg-muted/50 border border-border rounded-lg space-y-2.5">
+            <Label className="text-xs font-semibold">Límites de stock</Label>
             
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="min_stock" className="text-sm font-medium">
+            <div className="space-y-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="min_stock" className="text-xs font-medium">
                   Stock mínimo *
                 </Label>
-                <Input
-                  id="min_stock"
-                  type="number"
-                  {...register('min_stock', { valueAsNumber: true })}
-                  disabled={isSubmitting}
-                  placeholder="0"
-                  className="bg-background"
-                  onKeyDown={handleIntegerInput}
+                <Controller
+                  name="min_stock"
+                  control={control}
+                  render={({ field }) => (
+                    <NumberInput
+                      id="min_stock"
+                      value={field.value}
+                      onChange={(val) => field.onChange(val ?? 0)}
+                      disabled={isSubmitting}
+                      placeholder="0"
+                      maxDecimals={0}
+                      className="bg-background"
+                    />
+                  )}
                 />
                 {errors.min_stock && (
-                  <p className="text-sm text-destructive mt-1">{errors.min_stock.message}</p>
+                  <p className="text-xs text-destructive mt-1">{errors.min_stock.message}</p>
                 )}
                 <p className="text-xs text-muted-foreground">
                   Alerta cuando llegue a este nivel
                 </p>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="max_stock" className="text-sm font-medium">
+              <div className="space-y-1.5">
+                <Label htmlFor="max_stock" className="text-xs font-medium">
                   Stock máximo *
                 </Label>
-                <Input
-                  id="max_stock"
-                  type="number"
-                  {...register('max_stock', { valueAsNumber: true })}
-                  disabled={isSubmitting}
-                  placeholder="0"
-                  className="bg-background"
-                  onKeyDown={handleIntegerInput}
+                <Controller
+                  name="max_stock"
+                  control={control}
+                  render={({ field }) => (
+                    <NumberInput
+                      id="max_stock"
+                      value={field.value}
+                      onChange={(val) => field.onChange(val ?? 0)}
+                      disabled={isSubmitting}
+                      placeholder="0"
+                      maxDecimals={0}
+                      className="bg-background"
+                    />
+                  )}
                 />
                 {errors.max_stock && (
-                  <p className="text-sm text-destructive mt-1">{errors.max_stock.message}</p>
+                  <p className="text-xs text-destructive mt-1">{errors.max_stock.message}</p>
                 )}
                 <p className="text-xs text-muted-foreground">
-                  Capacidad máxima de almacenamiento
+                  Capacidad máxima
                 </p>
               </div>
             </div>
@@ -360,7 +336,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
       </div>
 
       {/* Form actions */}
-      <div className="flex gap-3 justify-end pt-6 border-t border-border bg-background">
+      <div className="flex gap-3 justify-end pt-3 mt-3 border-t border-border flex-shrink-0">
         <Button
           type="button"
           variant="outline"

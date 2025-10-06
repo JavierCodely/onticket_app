@@ -9,14 +9,14 @@ import { AlertCircle, CheckCircle, XCircle } from 'lucide-react';
 
 interface StockBadgeProps {
   stock: number;
+  minStock?: number;
   showIcon?: boolean;
-  lowStockThreshold?: number;
 }
 
 export const StockBadge: React.FC<StockBadgeProps> = ({
   stock,
+  minStock = 0,
   showIcon = false,
-  lowStockThreshold = 10,
 }) => {
   const getStyles = () => {
     if (stock === 0) {
@@ -26,7 +26,8 @@ export const StockBadge: React.FC<StockBadgeProps> = ({
         label: 'Sin stock'
       };
     }
-    if (stock <= lowStockThreshold) {
+    // Only show low stock warning if min_stock is configured and stock is at or below it
+    if (minStock > 0 && stock <= minStock) {
       return {
         className: 'bg-orange-100 text-orange-800 border-orange-400 dark:bg-orange-950 dark:text-orange-400 dark:border-orange-800',
         icon: <AlertCircle className="h-3 w-3" />,

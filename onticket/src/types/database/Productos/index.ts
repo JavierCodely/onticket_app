@@ -26,6 +26,13 @@ export interface Producto {
   categoria: CategoriaProducto;
   precio_compra: number;
   precio_venta: number;
+  // Multi-currency prices
+  precio_compra_ars: number;
+  precio_venta_ars: number;
+  precio_compra_usd: number;
+  precio_venta_usd: number;
+  precio_compra_brl: number;
+  precio_venta_brl: number;
   stock: number;
   min_stock: number;
   max_stock: number;
@@ -43,6 +50,13 @@ export interface ProductoInsert {
   categoria: CategoriaProducto;
   precio_compra: number;
   precio_venta: number;
+  // Multi-currency prices
+  precio_compra_ars?: number;
+  precio_venta_ars?: number;
+  precio_compra_usd?: number;
+  precio_venta_usd?: number;
+  precio_compra_brl?: number;
+  precio_venta_brl?: number;
   stock: number;
   min_stock: number;
   max_stock: number;
@@ -57,6 +71,13 @@ export interface ProductoUpdate {
   categoria?: CategoriaProducto;
   precio_compra?: number;
   precio_venta?: number;
+  // Multi-currency prices
+  precio_compra_ars?: number;
+  precio_venta_ars?: number;
+  precio_compra_usd?: number;
+  precio_venta_usd?: number;
+  precio_compra_brl?: number;
+  precio_venta_brl?: number;
   stock?: number;
   min_stock?: number;
   max_stock?: number;
@@ -71,6 +92,13 @@ export interface ProductoFormData {
   categoria: CategoriaProducto;
   precio_compra: number;
   precio_venta: number;
+  // Multi-currency prices
+  precio_compra_ars: number;
+  precio_venta_ars: number;
+  precio_compra_usd: number;
+  precio_venta_usd: number;
+  precio_compra_brl: number;
+  precio_venta_brl: number;
   stock: number;
   min_stock: number;
   max_stock: number;

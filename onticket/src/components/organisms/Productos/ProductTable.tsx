@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Pencil, Trash2, Package, RefreshCw } from 'lucide-react';
 import { ProfitBadge } from '@/components/atoms/ProfitBadge';
 import { StockBadge } from '@/components/atoms/StockBadge';
+import { FormattedCurrency } from '@/components/atoms/FormattedCurrency';
 import type { Producto } from '@/types/database/Productos';
 
 interface ProductTableProps {
@@ -99,14 +100,14 @@ export const ProductTable: React.FC<ProductTableProps> = ({
               <TableCell className="text-right">
                 <div className="inline-flex items-center px-3 py-1 rounded-md bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900">
                   <span className="font-semibold text-red-700 dark:text-red-400">
-                    ${producto.precio_compra.toFixed(2)}
+                    <FormattedCurrency value={producto.precio_compra} />
                   </span>
                 </div>
               </TableCell>
               <TableCell className="text-right">
                 <div className="inline-flex items-center px-3 py-1 rounded-md bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-900">
                   <span className="font-bold text-green-700 dark:text-green-400">
-                    ${producto.precio_venta.toFixed(2)}
+                    <FormattedCurrency value={producto.precio_venta} />
                   </span>
                 </div>
               </TableCell>
@@ -117,7 +118,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({
                 />
               </TableCell>
               <TableCell>
-                <StockBadge stock={producto.stock} />
+                <StockBadge stock={producto.stock} minStock={producto.min_stock} />
               </TableCell>
               <TableCell className="text-right">
                 <div className="flex gap-1 justify-end">

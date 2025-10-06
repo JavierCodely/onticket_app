@@ -1,25 +1,32 @@
 /**
  * ImageUploader Atom
- * Component for uploading and previewing images
+ * Component for uploading and previewing images with delete capability
  */
 
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { X, Image as ImageIcon } from 'lucide-react';
+import { X, Image as ImageIcon, Upload } from 'lucide-react';
 
 interface ImageUploaderProps {
   value?: string | null;
   onChange: (file: File | null) => void;
+  onDelete?: () => void; // Nueva prop para manejar eliminación
   disabled?: boolean;
 }
 
 export const ImageUploader: React.FC<ImageUploaderProps> = ({
   value,
   onChange,
+  onDelete,
   disabled = false,
 }) => {
   const [preview, setPreview] = useState<string | null>(value || null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Actualizar preview cuando cambia el value externo
+  useEffect(() => {
+    setPreview(value || null);
+  }, [value]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -53,6 +60,14 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
     if (inputRef.current) {
       inputRef.current.value = '';
     }
+    // Si existe un callback para eliminar, llamarlo
+    if (onDelete) {
+      onDelete();
+    }
+  };
+
+  const handleChangeImage = () => {
+    inputRef.current?.click();
   };
 
   return (
@@ -67,23 +82,37 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
       />
 
       {preview ? (
-        <div className="relative group">
-          <div className="h-40 w-40 rounded-lg overflow-hidden border-2 border-border bg-muted">
-            <img
-              src={preview}
-              alt="Preview"
-              className="h-full w-full object-cover"
-            />
+        <div className="flex flex-col items-center gap-3">
+          <div className="relative group">
+            <div className="h-40 w-40 rounded-lg overflow-hidden border-2 border-border bg-muted">
+              <img
+                src={preview}
+                alt="Preview"
+                className="h-full w-full object-cover"
+              />
+            </div>
+            <Button
+              type="button"
+              variant="destructive"
+              size="icon"
+              className="absolute -top-2 -right-2 h-7 w-7 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+              onClick={handleRemove}
+              disabled={disabled}
+              title="Eliminar imagen"
+            >
+              <X className="h-4 w-4" />
+            </Button>
           </div>
           <Button
             type="button"
-            variant="destructive"
-            size="icon"
-            className="absolute -top-2 -right-2 h-7 w-7 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
-            onClick={handleRemove}
+            variant="outline"
+            size="sm"
+            onClick={handleChangeImage}
             disabled={disabled}
+            className="gap-2"
           >
-            <X className="h-4 w-4" />
+            <Upload className="h-4 w-4" />
+            Cambiar imagen
           </Button>
         </div>
       ) : (

@@ -139,6 +139,13 @@ export const ProductosPage: React.FC = () => {
         categoria: data.categoria,
         precio_compra: data.precio_compra,
         precio_venta: data.precio_venta,
+        // Multi-currency prices
+        precio_compra_ars: data.precio_compra_ars,
+        precio_venta_ars: data.precio_venta_ars,
+        precio_compra_usd: data.precio_compra_usd,
+        precio_venta_usd: data.precio_venta_usd,
+        precio_compra_brl: data.precio_compra_brl,
+        precio_venta_brl: data.precio_venta_brl,
         stock: data.stock,
         min_stock: data.min_stock,
         max_stock: data.max_stock,
@@ -167,8 +174,9 @@ export const ProductosPage: React.FC = () => {
 
       let imagen_url = selectedProducto.imagen_url;
 
-      // Update image if new file provided
+      // Handle image changes
       if (imageFile) {
+        // New image file provided - upload and replace old one
         const { url, error } = await updateImage(
           STORAGE_BUCKETS.PRODUCTOS,
           imageFile,
@@ -181,6 +189,11 @@ export const ProductosPage: React.FC = () => {
           return;
         }
         imagen_url = url;
+      } else if (imageFile === null && selectedProducto.imagen_url) {
+        // Image was removed (imageFile is explicitly null and there was an image before)
+        // Delete the old image from storage
+        await deleteImage(STORAGE_BUCKETS.PRODUCTOS, selectedProducto.imagen_url);
+        imagen_url = null;
       }
 
       // Update product
@@ -192,6 +205,13 @@ export const ProductosPage: React.FC = () => {
           categoria: data.categoria,
           precio_compra: data.precio_compra,
           precio_venta: data.precio_venta,
+          // Multi-currency prices
+          precio_compra_ars: data.precio_compra_ars,
+          precio_venta_ars: data.precio_venta_ars,
+          precio_compra_usd: data.precio_compra_usd,
+          precio_venta_usd: data.precio_venta_usd,
+          precio_compra_brl: data.precio_compra_brl,
+          precio_venta_brl: data.precio_venta_brl,
           stock: data.stock,
           min_stock: data.min_stock,
           max_stock: data.max_stock,

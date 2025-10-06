@@ -6,7 +6,10 @@
 import React from 'react';
 import { useTheme } from 'next-themes';
 import { useColorTheme, type ColorTheme } from '@/hooks/useColorTheme';
-import { Moon, Sun, Check, Palette } from 'lucide-react';
+import { useNumberFormat, formatCurrency } from '@/hooks/useNumberFormat';
+import { useCurrency } from '@/hooks/useCurrency';
+import { CURRENCIES } from '@/types/currency';
+import { Moon, Sun, Check, Palette, Hash, DollarSign } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -38,6 +41,8 @@ const THEME_COLORS: Array<{
 export const ThemeConfigurator: React.FC = () => {
   const { theme, setTheme } = useTheme();
   const { colorTheme, setColorTheme } = useColorTheme();
+  const { format, setFormat } = useNumberFormat();
+  const { defaultCurrency, setDefaultCurrency } = useCurrency();
 
   return (
     <div className="space-y-6">
@@ -59,7 +64,7 @@ export const ThemeConfigurator: React.FC = () => {
                 key={themeColor.value}
                 onClick={() => setColorTheme(themeColor.value)}
                 className={cn(
-                  "relative flex flex-col items-start gap-2 rounded-lg border-2 p-3 transition-all hover:bg-accent",
+                  "relative flex flex-col items-start gap-2 rounded-lg border-2 p-3 transition-all hover:bg-primary/10",
                   colorTheme === themeColor.value
                     ? "border-primary bg-primary/5"
                     : "border-border"
@@ -98,7 +103,7 @@ export const ThemeConfigurator: React.FC = () => {
             <button
               onClick={() => setTheme('light')}
               className={cn(
-                "relative flex flex-col items-center gap-3 rounded-lg border-2 p-4 transition-all hover:bg-accent",
+                "relative flex flex-col items-center gap-3 rounded-lg border-2 p-4 transition-all hover:bg-primary/10",
                 theme === 'light'
                   ? "border-primary bg-primary/5"
                   : "border-border"
@@ -123,7 +128,7 @@ export const ThemeConfigurator: React.FC = () => {
             <button
               onClick={() => setTheme('dark')}
               className={cn(
-                "relative flex flex-col items-center gap-3 rounded-lg border-2 p-4 transition-all hover:bg-accent",
+                "relative flex flex-col items-center gap-3 rounded-lg border-2 p-4 transition-all hover:bg-primary/10",
                 theme === 'dark'
                   ? "border-primary bg-primary/5"
                   : "border-border"
@@ -142,6 +147,161 @@ export const ThemeConfigurator: React.FC = () => {
               <div className="text-center">
                 <p className="font-medium">Oscuro</p>
                 <p className="text-xs text-muted-foreground">Modo noche</p>
+              </div>
+            </button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Default Currency Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <DollarSign className="h-5 w-5" />
+            Moneda predeterminada
+          </CardTitle>
+          <CardDescription>
+            Moneda que se seleccionará por defecto al crear productos y ventas
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {Object.values(CURRENCIES).map((currency) => (
+              <button
+                key={currency.code}
+                onClick={() => setDefaultCurrency(currency.code)}
+                className={cn(
+                  "relative flex flex-col items-center gap-3 rounded-lg border-2 p-4 transition-all hover:bg-primary/10",
+                  defaultCurrency === currency.code
+                    ? "border-primary bg-primary/5"
+                    : "border-border"
+                )}
+              >
+                {defaultCurrency === currency.code && (
+                  <div className="absolute right-2 top-2">
+                    <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary">
+                      <Check className="h-3 w-3 text-primary-foreground" />
+                    </div>
+                  </div>
+                )}
+                <span className="text-3xl">{currency.flag}</span>
+                <div className="text-center space-y-1">
+                  <p className="font-semibold text-sm">{currency.code}</p>
+                  <p className="text-xs text-muted-foreground">{currency.name}</p>
+                  <p className="text-xs font-mono">{currency.symbol}</p>
+                </div>
+              </button>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Number Format Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Hash className="h-5 w-5" />
+            Formato de números
+          </CardTitle>
+          <CardDescription>
+            Selecciona cómo quieres ver los números y precios
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <button
+              onClick={() => setFormat('es-AR')}
+              className={cn(
+                "relative flex flex-col items-start gap-3 rounded-lg border-2 p-4 transition-all hover:bg-primary/10",
+                format === 'es-AR'
+                  ? "border-primary bg-primary/5"
+                  : "border-border"
+              )}
+            >
+              {format === 'es-AR' && (
+                <div className="absolute right-2 top-2">
+                  <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary">
+                    <Check className="h-3 w-3 text-primary-foreground" />
+                  </div>
+                </div>
+              )}
+              <div className="space-y-1">
+                <p className="font-semibold text-base">🇦🇷 Argentino</p>
+                <p className="text-xs text-muted-foreground">Formato local</p>
+              </div>
+              <div className="space-y-1 text-sm">
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-muted-foreground">Decimales:</span>
+                  <span className="font-mono font-semibold">1.234,56</span>
+                </div>
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-muted-foreground">Precio:</span>
+                  <span className="font-mono font-semibold">{formatCurrency(1234.56, 'es-AR')}</span>
+                </div>
+              </div>
+            </button>
+
+            <button
+              onClick={() => setFormat('es-ES')}
+              className={cn(
+                "relative flex flex-col items-start gap-3 rounded-lg border-2 p-4 transition-all hover:bg-primary/10",
+                format === 'es-ES'
+                  ? "border-primary bg-primary/5"
+                  : "border-border"
+              )}
+            >
+              {format === 'es-ES' && (
+                <div className="absolute right-2 top-2">
+                  <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary">
+                    <Check className="h-3 w-3 text-primary-foreground" />
+                  </div>
+                </div>
+              )}
+              <div className="space-y-1">
+                <p className="font-semibold text-base">🇪🇸 Español (ES)</p>
+                <p className="text-xs text-muted-foreground">Formato europeo</p>
+              </div>
+              <div className="space-y-1 text-sm">
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-muted-foreground">Decimales:</span>
+                  <span className="font-mono font-semibold">1.234,56</span>
+                </div>
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-muted-foreground">Precio:</span>
+                  <span className="font-mono font-semibold">{formatCurrency(1234.56, 'es-ES')}</span>
+                </div>
+              </div>
+            </button>
+
+            <button
+              onClick={() => setFormat('en-US')}
+              className={cn(
+                "relative flex flex-col items-start gap-3 rounded-lg border-2 p-4 transition-all hover:bg-primary/10",
+                format === 'en-US'
+                  ? "border-primary bg-primary/5"
+                  : "border-border"
+              )}
+            >
+              {format === 'en-US' && (
+                <div className="absolute right-2 top-2">
+                  <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary">
+                    <Check className="h-3 w-3 text-primary-foreground" />
+                  </div>
+                </div>
+              )}
+              <div className="space-y-1">
+                <p className="font-semibold text-base">🇺🇸 Inglés (US)</p>
+                <p className="text-xs text-muted-foreground">Formato americano</p>
+              </div>
+              <div className="space-y-1 text-sm">
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-muted-foreground">Decimales:</span>
+                  <span className="font-mono font-semibold">1,234.56</span>
+                </div>
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-muted-foreground">Precio:</span>
+                  <span className="font-mono font-semibold">{formatCurrency(1234.56, 'en-US')}</span>
+                </div>
               </div>
             </button>
           </div>

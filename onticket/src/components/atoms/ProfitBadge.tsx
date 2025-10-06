@@ -6,6 +6,7 @@
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { FormattedNumber } from '@/components/atoms/FormattedNumber';
 
 interface ProfitBadgeProps {
   precioCompra: number;
@@ -53,7 +54,8 @@ export const ProfitBadge: React.FC<ProfitBadgeProps> = ({
   return (
     <Badge variant={getVariant()} className="gap-1">
       {showIcon && getIcon()}
-      {profitMargin >= 0 ? '+' : ''}{profitMargin.toFixed(1)}% margen
+      {profitMargin >= 0 ? '+' : ''}
+      <FormattedNumber value={profitMargin} decimals={1} /> margen
     </Badge>
   );
 };

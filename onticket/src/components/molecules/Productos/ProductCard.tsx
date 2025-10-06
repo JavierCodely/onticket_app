@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Pencil, Trash2, RefreshCw } from 'lucide-react';
 import { ProfitBadge } from '@/components/atoms/ProfitBadge';
 import { StockBadge } from '@/components/atoms/StockBadge';
+import { FormattedCurrency } from '@/components/atoms/FormattedCurrency';
 import type { Producto } from '@/types/database/Productos';
 
 interface ProductCardProps {
@@ -37,18 +38,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         ? 'border-l-red-500 border-2 border-red-500 shadow-red-100 dark:shadow-red-900/20' 
         : 'border-l-primary'
     }`}>
-      <CardHeader className={`pb-3 ${
-        isLowStock 
-          ? 'bg-red-500 text-white' 
-          : 'bg-primary text-primary-foreground'
-      }`}>
-        <div className="flex items-start justify-between">
-          <div className="flex-1">
-            <h3 className="font-semibold text-lg truncate">{producto.nombre}</h3>
-            <p className="text-sm font-medium opacity-90">{producto.categoria}</p>
-          </div>
+      <CardHeader className="pb-3">
+        <div className="text-center space-y-1">
+          <h3 className="font-semibold text-lg">{producto.nombre}</h3>
+          <p className="text-sm text-muted-foreground">{producto.categoria}</p>
           {isLowStock && (
-            <div className="ml-2 px-2 py-1 bg-white/20 rounded text-xs font-bold">
+            <div className="inline-block px-3 py-1 bg-red-500 text-white rounded-full text-xs font-bold mt-2">
               ¡STOCK BAJO!
             </div>
           )}
@@ -57,7 +52,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
       <CardContent className="space-y-4 pt-4">
         <div className="flex gap-2 flex-wrap">
-          <StockBadge stock={producto.stock} showIcon />
+          <StockBadge stock={producto.stock} minStock={producto.min_stock} showIcon />
           <ProfitBadge
             precioCompra={producto.precio_compra}
             precioVenta={producto.precio_venta}
@@ -68,20 +63,24 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         <div className="grid grid-cols-2 gap-3 text-sm">
           <div className="p-3 rounded-lg bg-destructive text-destructive-foreground shadow-sm">
             <p className="text-xs font-semibold mb-1.5 opacity-90">Compra</p>
-            <p className="font-bold text-xl">${producto.precio_compra.toFixed(2)}</p>
+            <p className="font-bold text-xl">
+              <FormattedCurrency value={producto.precio_compra} />
+            </p>
           </div>
           <div className="p-3 rounded-lg bg-success text-success-foreground shadow-sm">
             <p className="text-xs font-semibold mb-1.5 opacity-90">Venta</p>
-            <p className="font-bold text-xl">${producto.precio_venta.toFixed(2)}</p>
+            <p className="font-bold text-xl">
+              <FormattedCurrency value={producto.precio_venta} />
+            </p>
           </div>
         </div>
 
         {profitMargin > 0 && (
-          <div className="p-3 rounded-lg bg-secondary text-secondary-foreground text-center shadow-sm">
-            <p className="text-xs font-medium opacity-90">
+          <div className="p-3 rounded-lg bg-cyan-500/20 dark:bg-cyan-500/10 border border-cyan-500/30 text-center shadow-sm">
+            <p className="text-xs font-medium text-cyan-700 dark:text-cyan-400">
               Ganancia por unidad:{' '}
-              <span className="font-bold text-base">
-                ${(producto.precio_venta - producto.precio_compra).toFixed(2)}
+              <span className="font-bold text-base text-cyan-800 dark:text-cyan-300">
+                <FormattedCurrency value={producto.precio_venta - producto.precio_compra} />
               </span>
             </p>
           </div>
