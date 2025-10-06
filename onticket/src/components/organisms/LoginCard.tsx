@@ -13,7 +13,9 @@ import { LoginForm } from '@/components/molecules/LoginForm';
 import type { LoginFormData } from '@/components/molecules/LoginForm';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { Ticket } from 'lucide-react';
+import { Ticket, AlertCircle } from 'lucide-react';
+import { loginRateLimiter, secureLog, sanitizeInput, isValidEmail } from '@/lib/security';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 /**
  * LoginCard component providing complete login functionality
@@ -28,28 +30,57 @@ export const LoginCard: React.FC = () => {
   /**
    * Handle form submission
    * Attempts authentication and redirects on success
+   * Includes security validations and rate limiting
    */
   const handleSubmit = async (data: LoginFormData) => {
     try {
       setIsSubmitting(true);
       setError(null);
 
-      console.log('Attempting login with:', data.email);
+      // Sanitize input
+      const email = sanitizeInput(data.email).toLowerCase();
 
-      const { error: signInError } = await signIn(data.email, data.password);
+      // Validate email format
+      if (!isValidEmail(email)) {
+        setError('Formato de email inválido');
+        setIsSubmitting(false);
+        return;
+      }
 
-      console.log('Login result:', signInError ? `Error: ${signInError}` : 'Success');
+      // Check rate limiting
+      if (loginRateLimiter.isRateLimited(email)) {
+        const timeRemaining = loginRateLimiter.getTimeUntilReset(email);
+        setError(
+          `Demasiados intentos fallidos. Por favor, intenta de nuevo en ${Math.ceil(timeRemaining / 60)} minutos.`
+        );
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Record attempt
+      loginRateLimiter.recordAttempt(email);
+
+      secureLog.info('Attempting login');
+
+      const { error: signInError } = await signIn(email, data.password);
 
       if (signInError) {
-        setError(signInError);
+        const remaining = loginRateLimiter.getRemainingAttempts(email);
+        setError(
+          remaining > 1
+            ? `${signInError} (${remaining - 1} intentos restantes)`
+            : signInError
+        );
         setIsSubmitting(false);
       } else {
-        // Success - navigate to home (will be redirected by RoleBasedRedirect)
+        // Success - clear rate limit and navigate
+        loginRateLimiter.clearAttempts(email);
+        secureLog.info('Login successful');
         navigate('/');
         // Keep isSubmitting true to show loading during redirect
       }
     } catch (err) {
-      console.error('Unexpected error during login:', err);
+      secureLog.error('Unexpected error during login:', err);
       setError('Ocurrió un error inesperado. Por favor, intenta de nuevo.');
       setIsSubmitting(false);
     }
@@ -73,7 +104,14 @@ export const LoginCard: React.FC = () => {
         </div>
       </CardHeader>
 
-      <CardContent>
+      <CardContent className="space-y-4">
+        {error && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+        
         <LoginForm
           onSubmit={handleSubmit}
           isSubmitting={isSubmitting}

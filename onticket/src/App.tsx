@@ -2,136 +2,60 @@
  * App Component
  * Main application component with routing and authentication
  *
- * Architecture:
- * - BrowserRouter for client-side routing
- * - AuthProvider for global authentication state
- * - Role-based routing (Admin, Bartender, Seguridad, RRPP)
- * - Protected routes for authenticated users
- * - Public login route
+ * Security Features:
+ * - Lazy loading of all components except essential auth
+ * - ColorThemeProvider loaded globally (lightweight, theme consistency)
+ * - Other theme providers only loaded after authentication
+ * - Protected routes isolated from public routes
+ * - No admin components loaded on login screen
  */
 
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
 import { AuthProvider } from '@/contexts/AuthContext';
-import { ThemeProvider } from '@/components/ThemeProvider';
 import { ColorThemeProvider } from '@/components/ColorThemeProvider';
-import { ProtectedRoute } from '@/components/ProtectedRoute';
-import { RoleBasedRedirect } from '@/components/RoleBasedRedirect';
 
-// Public routes - loaded immediately
-import { LoginPage } from '@/pages/auth';
-
-// Protected routes - lazy loaded only when authenticated
-const AdminDashboard = lazy(() => import('@/pages/admin/dashboard/DashboardPage').then(m => ({ default: m.DashboardPage })));
-const InformacionPage = lazy(() => import('@/pages/admin/informacion/InformacionPage').then(m => ({ default: m.InformacionPage })));
-const ProductosPage = lazy(() => import('@/pages/admin/productos/ProductosPage').then(m => ({ default: m.ProductosPage })));
-const InicioCierrePage = lazy(() => import('@/pages/admin/inicio-cierre/InicioCierrePage').then(m => ({ default: m.InicioCierrePage })));
-const VentasPage = lazy(() => import('@/pages/admin/ventas/VentasPage').then(m => ({ default: m.VentasPage })));
-const GastosPage = lazy(() => import('@/pages/admin/gastos/GastosPage').then(m => ({ default: m.GastosPage })));
-const CalendarioPage = lazy(() => import('@/pages/admin/calendario/CalendarioPage').then(m => ({ default: m.CalendarioPage })));
-const EmpleadosPage = lazy(() => import('@/pages/admin/empleados/EmpleadosPage').then(m => ({ default: m.EmpleadosPage })));
-const ConfiguracionesPage = lazy(() => import('@/pages/admin/configuraciones/ConfiguracionesPage').then(m => ({ default: m.ConfiguracionesPage })));
-const CombosPage = lazy(() => import('@/pages/admin/combos/CombosPage').then(m => ({ default: m.CombosPage })));
-const PromocionesPage = lazy(() => import('@/pages/admin/promociones/PromocionesPage').then(m => ({ default: m.PromocionesPage })));
-const BartenderDashboard = lazy(() => import('@/pages/bartender/dashboard/DashboardPage').then(m => ({ default: m.DashboardPage })));
-
-// Loading fallback component
-const LoadingFallback = () => (
-  <div className="min-h-screen flex items-center justify-center">
-    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+// Minimal loading fallback for login
+const MinimalLoadingFallback = () => (
+  <div className="min-h-screen flex items-center justify-center bg-background">
+    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 dark:border-gray-100"></div>
   </div>
 );
+
+// Public routes - ONLY login, loaded with minimal dependencies
+const LoginPage = lazy(() => import('@/pages/auth/login/LoginPage').then(m => ({ default: m.LoginPage })));
+
+// Protected App Wrapper - loads theme providers and other non-essential features
+const ProtectedAppWrapper = lazy(() => import('@/components/ProtectedAppWrapper').then(m => ({ default: m.ProtectedAppWrapper })));
 
 function App() {
   return (
     <BrowserRouter>
-      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+      <AuthProvider>
         <ColorThemeProvider>
-          <AuthProvider>
-            <Routes>
-          {/* Public route - Login */}
-          <Route path="/login" element={<LoginPage />} />
-
-          {/* Root - Redirect based on role */}
-          <Route
-            path="/"
-            element={
-              <ProtectedRoute>
-                <RoleBasedRedirect />
-              </ProtectedRoute>
-            }
-          />
-
-          {/* Admin Routes */}
-          <Route
-            path="/admin/*"
-            element={
-              <ProtectedRoute>
-                <Suspense fallback={<LoadingFallback />}>
-                  <Routes>
-                    <Route path="/" element={<AdminDashboard />} />
-                    <Route path="informacion" element={<InformacionPage />} />
-                    <Route path="productos" element={<ProductosPage />} />
-                    <Route path="combos" element={<CombosPage />} />
-                    <Route path="promociones" element={<PromocionesPage />} />
-                    <Route path="inicio-cierre" element={<InicioCierrePage />} />
-                    <Route path="ventas" element={<VentasPage />} />
-                    <Route path="gastos" element={<GastosPage />} />
-                    <Route path="calendario" element={<CalendarioPage />} />
-                    <Route path="empleados" element={<EmpleadosPage />} />
-                    <Route path="configuraciones" element={<ConfiguracionesPage />} />
-                    <Route path="*" element={<Navigate to="/admin" replace />} />
-                  </Routes>
+          <Routes>
+            {/* Public route - Login ONLY, no extra components */}
+            <Route 
+              path="/login" 
+              element={
+                <Suspense fallback={<MinimalLoadingFallback />}>
+                  <LoginPage />
                 </Suspense>
-              </ProtectedRoute>
-            }
-          />
+              } 
+            />
 
-          {/* Bartender Routes */}
-          <Route
-            path="/bartender/*"
-            element={
-              <ProtectedRoute>
-                <Suspense fallback={<LoadingFallback />}>
-                  <Routes>
-                    <Route path="/" element={<BartenderDashboard />} />
-                    <Route path="*" element={<Navigate to="/bartender" replace />} />
-                  </Routes>
+            {/* All protected routes wrapped in ProtectedAppWrapper */}
+            <Route
+              path="/*"
+              element={
+                <Suspense fallback={<MinimalLoadingFallback />}>
+                  <ProtectedAppWrapper />
                 </Suspense>
-              </ProtectedRoute>
-            }
-          />
-
-          {/* Seguridad Routes (placeholder) */}
-          <Route
-            path="/seguridad/*"
-            element={
-              <ProtectedRoute>
-                <div className="min-h-screen flex items-center justify-center">
-                  <h1 className="text-2xl font-bold">Dashboard de Seguridad (En desarrollo)</h1>
-                </div>
-              </ProtectedRoute>
-            }
-          />
-
-          {/* RRPP Routes (placeholder) */}
-          <Route
-            path="/rrpp/*"
-            element={
-              <ProtectedRoute>
-                <div className="min-h-screen flex items-center justify-center">
-                  <h1 className="text-2xl font-bold">Dashboard de RRPP (En desarrollo)</h1>
-                </div>
-              </ProtectedRoute>
-            }
-          />
-
-          {/* Catch all - redirect to home */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </AuthProvider>
+              }
+            />
+          </Routes>
         </ColorThemeProvider>
-      </ThemeProvider>
+      </AuthProvider>
     </BrowserRouter>
   );
 }

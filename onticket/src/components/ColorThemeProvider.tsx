@@ -27,7 +27,7 @@ export type ColorTheme =
   | 'neutral';
 
 const COLOR_THEME_STORAGE_KEY = 'color-theme';
-const DEFAULT_COLOR_THEME: ColorTheme = 'blue';
+const DEFAULT_COLOR_THEME: ColorTheme = 'green';
 
 interface ColorThemeContextValue {
   colorTheme: ColorTheme;
