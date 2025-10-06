@@ -16,12 +16,6 @@ export default defineConfig({
     
     // Minificación agresiva
     minify: 'terser',
-    terserOptions: {
-      compress: {
-        drop_console: true, // Eliminar console.logs en producción
-        drop_debugger: true,
-      },
-    },
     
     // Optimización de chunks
     rollupOptions: {
