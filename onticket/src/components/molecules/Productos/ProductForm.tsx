@@ -3,7 +3,7 @@
  * Form for creating and editing products with profit calculation
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -118,6 +118,15 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     },
   });
 
+  // Sync default currency changes when creating a new product
+  useEffect(() => {
+    // Only update when creating a new product (no existing producto)
+    if (!producto) {
+      // Update active currencies to match the default currency
+      setActiveCurrencies([defaultCurrency]);
+    }
+  }, [defaultCurrency, producto]);
+
   const handleImageChange = (file: File | null) => {
     setImageFile(file);
     if (file === null && producto?.imagen_url) {
@@ -137,9 +146,9 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   return (
     <form onSubmit={handleSubmit(handleFormSubmit)} className="h-full flex flex-col">
       {/* Three column layout for PC */}
-      <div className="grid grid-cols-3 gap-8 flex-1 min-h-0">
+      <div className="grid grid-cols-3 gap-6 flex-1 min-h-0">
         {/* Column 1 - Basic Info */}
-        <div className="space-y-4">
+        <div className="space-y-3">
           <h3 className="text-sm font-semibold border-b pb-1.5">Información Básica</h3>
           <div className="space-y-3.5">
             <Label className="text-xs font-medium">Imagen del producto</Label>
@@ -195,11 +204,11 @@ export const ProductForm: React.FC<ProductFormProps> = ({
         </div>
 
         {/* Column 2 - Multi-Currency Pricing */}
-        <div className="space-y-4">
+        <div className="space-y-3">
           <h3 className="text-sm font-semibold border-b pb-1.5">Precios por Moneda</h3>
           
           {/* Currency Selection */}
-          <div className="space-y-2.5">
+          <div className="space-y-2">
             <Label className="text-xs font-medium">Monedas activas *</Label>
             <CurrencyToggle
               value={activeCurrencies}
@@ -209,7 +218,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
           </div>
 
           {/* Multi-Currency Price Inputs */}
-          <div className="space-y-3">
+          <div className="space-y-2">
             <MultiCurrencyPriceInput
               activeCurrencies={activeCurrencies}
               values={{
@@ -240,9 +249,8 @@ export const ProductForm: React.FC<ProductFormProps> = ({
           </div>
         </div>
 
-        {/* Column 3 - Stock Management */}
         {/* Column 3 - Inventory Management */}
-        <div className="space-y-4">
+        <div className="space-y-3">
           <h3 className="text-sm font-semibold border-b pb-1.5">Gestión de Inventario</h3>
 
           <div className="space-y-1.5">
@@ -273,10 +281,10 @@ export const ProductForm: React.FC<ProductFormProps> = ({
           </div>
 
           {/* Stock management section */}
-          <div className="p-3 bg-muted/50 border border-border rounded-lg space-y-2.5">
+          <div className="p-2.5 bg-muted/50 border border-border rounded-lg space-y-2">
             <Label className="text-xs font-semibold">Límites de stock</Label>
             
-            <div className="space-y-3">
+            <div className="space-y-2">
               <div className="space-y-1.5">
                 <Label htmlFor="min_stock" className="text-xs font-medium">
                   Stock mínimo *
@@ -336,7 +344,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
       </div>
 
       {/* Form actions */}
-      <div className="flex gap-3 justify-end pt-3 mt-3 border-t border-border flex-shrink-0">
+      <div className="flex gap-3 justify-end pt-2.5 mt-2.5 border-t border-border flex-shrink-0">
         <Button
           type="button"
           variant="outline"

@@ -8,6 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Package, TrendingUp, AlertCircle, DollarSign, Percent } from 'lucide-react';
 import { FormattedCurrency } from '@/components/atoms/FormattedCurrency';
 import { FormattedNumber } from '@/components/atoms/FormattedNumber';
+import { useCurrency } from '@/hooks/useCurrency';
+import { calculateProductStats } from '@/lib/currency-utils';
 import type { Producto } from '@/types/database/Productos';
 
 interface ProductStatsProps {
@@ -15,85 +17,26 @@ interface ProductStatsProps {
 }
 
 export const ProductStats: React.FC<ProductStatsProps> = ({ productos }) => {
-  const totalProductos = productos.length;
+  const { defaultCurrency } = useCurrency();
+  
+  // Calculate all stats based on default currency
+  const stats = calculateProductStats(productos, defaultCurrency);
 
   // Total units in stock across all products
-  const totalStock = productos.reduce((sum, p) => {
-    const stock = Number(p.stock) || 0;
-    return sum + stock;
-  }, 0);
-
-  // Products with low stock (based on min_stock threshold)
-  const lowStockProducts = productos.filter((p) => {
-    const stock = Number(p.stock) || 0;
-    const minStock = Number(p.min_stock) || 0;
-    // Only count as low stock if min_stock is configured and stock is at or below it
-    return minStock > 0 && stock > 0 && stock <= minStock;
-  }).length;
+  const totalStock = productos.reduce((sum, p) => sum + (Number(p.stock) || 0), 0);
 
   // Products completely out of stock
-  const outOfStockProducts = productos.filter((p) => {
-    const stock = Number(p.stock) || 0;
-    return stock === 0;
-  }).length;
+  const outOfStockProducts = productos.filter((p) => (Number(p.stock) || 0) === 0).length;
 
-  // Total value of inventory at purchase price (costo de todo el stock)
-  const totalInventoryValue = productos.reduce((sum, p) => {
-    const precioCompra = Number(p.precio_compra) || 0;
-    const stock = Number(p.stock) || 0;
-    const value = precioCompra * stock;
-    return sum + value;
-  }, 0);
-
-  // Total potential revenue if all stock is sold at sell price (ingreso si se vende todo)
-  const potentialRevenue = productos.reduce((sum, p) => {
-    const precioVenta = Number(p.precio_venta) || 0;
-    const stock = Number(p.stock) || 0;
-    const revenue = precioVenta * stock;
-    return sum + revenue;
-  }, 0);
-
-  // Potential profit = Revenue - Cost (ganancia = ingreso - costo)
-  const potentialProfit = potentialRevenue - totalInventoryValue;
-
-  // Calculate average profit margin percentage across all products
-  const profitMarginPercentage = productos.reduce((sum, p) => {
-    const precioCompra = Number(p.precio_compra) || 0;
-    const precioVenta = Number(p.precio_venta) || 0;
-    if (precioCompra > 0) {
-      const margin = ((precioVenta - precioCompra) / precioCompra) * 100;
-      return sum + margin;
-    }
-    return sum;
-  }, 0) / (productos.length || 1);
-
-  // Alternative: Calculate total margin based on inventory
-  const totalProfitMarginPercentage = totalInventoryValue > 0
-    ? (potentialProfit / totalInventoryValue) * 100
+  // Calculate total profit margin percentage based on inventory
+  const totalProfitMarginPercentage = stats.totalInventoryValue > 0
+    ? (stats.totalPotentialProfit / stats.totalInventoryValue) * 100
     : 0;
 
   // Round to 2 decimal places to avoid floating point errors
   const roundToTwo = (num: number) => Math.round(num * 100) / 100;
 
-  // Debug: Log calculations
-  console.log('[ProductStats] Calculation details:', {
-    totalProducts: totalProductos,
-    totalUnits: totalStock,
-    totalInventoryCost: roundToTwo(totalInventoryValue),
-    totalPotentialRevenue: roundToTwo(potentialRevenue),
-    totalPotentialProfit: roundToTwo(potentialProfit),
-    productDetails: productos.map(p => ({
-      name: p.nombre,
-      stock: p.stock,
-      buyPrice: p.precio_compra,
-      sellPrice: p.precio_venta,
-      inventoryValue: p.precio_compra * p.stock,
-      potentialRevenue: p.precio_venta * p.stock,
-      profit: (p.precio_venta * p.stock) - (p.precio_compra * p.stock)
-    }))
-  });
-
-  const totalAlerts = outOfStockProducts + lowStockProducts;
+  const totalAlerts = outOfStockProducts + stats.lowStockCount;
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
@@ -106,7 +49,7 @@ export const ProductStats: React.FC<ProductStatsProps> = ({ productos }) => {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="text-3xl font-bold text-primary">{totalProductos}</div>
+          <div className="text-3xl font-bold text-primary">{stats.totalProducts}</div>
           <p className="text-xs text-muted-foreground mt-1 font-medium">
             {totalStock} unidades en stock
           </p>
@@ -123,7 +66,7 @@ export const ProductStats: React.FC<ProductStatsProps> = ({ productos }) => {
         </CardHeader>
         <CardContent>
           <div className="text-3xl font-bold text-purple-700 dark:text-purple-400">
-            <FormattedCurrency value={roundToTwo(totalInventoryValue)} />
+            <FormattedCurrency value={roundToTwo(stats.totalInventoryValue)} />
           </div>
           <p className="text-xs text-muted-foreground mt-1 font-medium">
             Costo total del stock
@@ -132,16 +75,16 @@ export const ProductStats: React.FC<ProductStatsProps> = ({ productos }) => {
       </Card>
 
       {/* Potential Profit Card */}
-      <Card className={`border-l-4 ${potentialProfit >= 0 ? 'border-l-success bg-success/10' : 'border-l-destructive bg-destructive/10'}`}>
+      <Card className={`border-l-4 ${stats.totalPotentialProfit >= 0 ? 'border-l-success bg-success/10' : 'border-l-destructive bg-destructive/10'}`}>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className={`text-sm font-semibold ${potentialProfit >= 0 ? 'text-success' : 'text-destructive'}`}>Ganancia Potencial</CardTitle>
-          <div className={`h-10 w-10 rounded-full flex items-center justify-center ${potentialProfit >= 0 ? 'bg-success text-success-foreground' : 'bg-destructive text-destructive-foreground'}`}>
+          <CardTitle className={`text-sm font-semibold ${stats.totalPotentialProfit >= 0 ? 'text-success' : 'text-destructive'}`}>Ganancia Potencial</CardTitle>
+          <div className={`h-10 w-10 rounded-full flex items-center justify-center ${stats.totalPotentialProfit >= 0 ? 'bg-success text-success-foreground' : 'bg-destructive text-destructive-foreground'}`}>
             <TrendingUp className="h-5 w-5" />
           </div>
         </CardHeader>
         <CardContent>
-          <div className={`text-3xl font-bold ${potentialProfit >= 0 ? 'text-success' : 'text-destructive'}`}>
-            <FormattedCurrency value={roundToTwo(potentialProfit)} />
+          <div className={`text-3xl font-bold ${stats.totalPotentialProfit >= 0 ? 'text-success' : 'text-destructive'}`}>
+            <FormattedCurrency value={roundToTwo(stats.totalPotentialProfit)} />
           </div>
           <p className="text-xs text-muted-foreground mt-1 font-medium">
             Si se vende todo el stock
@@ -186,8 +129,8 @@ export const ProductStats: React.FC<ProductStatsProps> = ({ productos }) => {
               {outOfStockProducts} sin stock
             </span>
             {', '}
-            <span className={lowStockProducts > 0 ? 'text-destructive/70 font-semibold' : ''}>
-              {lowStockProducts} bajo stock
+            <span className={stats.lowStockCount > 0 ? 'text-destructive/70 font-semibold' : ''}>
+              {stats.lowStockCount} bajo stock
             </span>
           </p>
         </CardContent>

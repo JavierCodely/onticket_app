@@ -17,6 +17,8 @@ import { Pencil, Trash2, Package, RefreshCw } from 'lucide-react';
 import { ProfitBadge } from '@/components/atoms/ProfitBadge';
 import { StockBadge } from '@/components/atoms/StockBadge';
 import { FormattedCurrency } from '@/components/atoms/FormattedCurrency';
+import { useCurrency } from '@/hooks/useCurrency';
+import { getPriceForCurrency } from '@/lib/currency-utils';
 import type { Producto } from '@/types/database/Productos';
 
 interface ProductTableProps {
@@ -32,6 +34,8 @@ export const ProductTable: React.FC<ProductTableProps> = ({
   onDelete,
   onRenewStock,
 }) => {
+  const { defaultCurrency } = useCurrency();
+
   if (productos.length === 0) {
     return (
       <div className="text-center py-12 border rounded-lg bg-muted/30">
@@ -61,6 +65,10 @@ export const ProductTable: React.FC<ProductTableProps> = ({
           {productos.map((producto) => {
             // Check if product has low stock
             const isLowStock = producto.min_stock > 0 && producto.stock <= producto.min_stock;
+            
+            // Get prices for default currency using utility function
+            const precioCompra = getPriceForCurrency(producto, defaultCurrency, 'compra');
+            const precioVenta = getPriceForCurrency(producto, defaultCurrency, 'venta');
             
             return (
             <TableRow 
@@ -100,21 +108,21 @@ export const ProductTable: React.FC<ProductTableProps> = ({
               <TableCell className="text-right">
                 <div className="inline-flex items-center px-3 py-1 rounded-md bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900">
                   <span className="font-semibold text-red-700 dark:text-red-400">
-                    <FormattedCurrency value={producto.precio_compra} />
+                    <FormattedCurrency value={precioCompra} />
                   </span>
                 </div>
               </TableCell>
               <TableCell className="text-right">
                 <div className="inline-flex items-center px-3 py-1 rounded-md bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-900">
                   <span className="font-bold text-green-700 dark:text-green-400">
-                    <FormattedCurrency value={producto.precio_venta} />
+                    <FormattedCurrency value={precioVenta} />
                   </span>
                 </div>
               </TableCell>
               <TableCell>
                 <ProfitBadge
-                  precioCompra={producto.precio_compra}
-                  precioVenta={producto.precio_venta}
+                  precioCompra={precioCompra}
+                  precioVenta={precioVenta}
                 />
               </TableCell>
               <TableCell>

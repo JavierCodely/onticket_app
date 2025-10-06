@@ -10,6 +10,8 @@ import { Pencil, Trash2, RefreshCw } from 'lucide-react';
 import { ProfitBadge } from '@/components/atoms/ProfitBadge';
 import { StockBadge } from '@/components/atoms/StockBadge';
 import { FormattedCurrency } from '@/components/atoms/FormattedCurrency';
+import { useCurrency } from '@/hooks/useCurrency';
+import { getPriceForCurrency, calculateProfitMargin } from '@/lib/currency-utils';
 import type { Producto } from '@/types/database/Productos';
 
 interface ProductCardProps {
@@ -25,9 +27,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   onDelete,
   onRenewStock,
 }) => {
-  const profitMargin = producto.precio_compra > 0
-    ? ((producto.precio_venta - producto.precio_compra) / producto.precio_compra) * 100
-    : 0;
+  const { defaultCurrency } = useCurrency();
+
+  // Get prices based on default currency
+  const precioCompra = getPriceForCurrency(producto, defaultCurrency, 'compra');
+  const precioVenta = getPriceForCurrency(producto, defaultCurrency, 'venta');
+  const profitMargin = calculateProfitMargin(precioCompra, precioVenta);
 
   // Check if product has low stock
   const isLowStock = producto.min_stock > 0 && producto.stock <= producto.min_stock;
@@ -54,8 +59,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         <div className="flex gap-2 flex-wrap">
           <StockBadge stock={producto.stock} minStock={producto.min_stock} showIcon />
           <ProfitBadge
-            precioCompra={producto.precio_compra}
-            precioVenta={producto.precio_venta}
+            precioCompra={precioCompra}
+            precioVenta={precioVenta}
             showIcon
           />
         </div>
@@ -64,13 +69,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           <div className="p-3 rounded-lg bg-destructive text-destructive-foreground shadow-sm">
             <p className="text-xs font-semibold mb-1.5 opacity-90">Compra</p>
             <p className="font-bold text-xl">
-              <FormattedCurrency value={producto.precio_compra} />
+              <FormattedCurrency value={precioCompra} />
             </p>
           </div>
           <div className="p-3 rounded-lg bg-success text-success-foreground shadow-sm">
             <p className="text-xs font-semibold mb-1.5 opacity-90">Venta</p>
             <p className="font-bold text-xl">
-              <FormattedCurrency value={producto.precio_venta} />
+              <FormattedCurrency value={precioVenta} />
             </p>
           </div>
         </div>
@@ -80,7 +85,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             <p className="text-xs font-medium text-cyan-700 dark:text-cyan-400">
               Ganancia por unidad:{' '}
               <span className="font-bold text-base text-cyan-800 dark:text-cyan-300">
-                <FormattedCurrency value={producto.precio_venta - producto.precio_compra} />
+                <FormattedCurrency value={precioVenta - precioCompra} />
               </span>
             </p>
           </div>
