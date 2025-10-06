@@ -26,7 +26,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import type { InicioCierre, InicioCierreInsert, InicioCierreUpdate } from '@/types/database/InicioCierre';
+import type { InicioCierre } from '@/types/database/InicioCierre';
 import type { Producto } from '@/types/database/Productos';
 
 export const InicioCierrePage: React.FC = () => {
@@ -119,7 +119,7 @@ export const InicioCierrePage: React.FC = () => {
       }
 
       // Create opening records for all products
-      const registrosInicio: InicioCierreInsert[] = productos.map((producto: Producto) => ({
+      const registrosInicio = productos.map((producto: Producto) => ({
         club_id: user.club.id,
         producto_id: producto.id,
         nombre_producto: producto.nombre,
@@ -128,8 +128,8 @@ export const InicioCierrePage: React.FC = () => {
         fecha_inicio: new Date().toISOString(),
       }));
 
-      const { error: insertError } = await supabase
-        .from('inicioycierre')
+      const { error: insertError } = await (supabase
+        .from('inicioycierre') as any)
         .insert(registrosInicio);
 
       if (insertError) throw insertError;
@@ -157,7 +157,7 @@ export const InicioCierrePage: React.FC = () => {
         .from('productos')
         .select('stock')
         .eq('id', registro.producto_id)
-        .single();
+        .single() as any;
 
       if (fetchError) throw fetchError;
 
@@ -167,13 +167,13 @@ export const InicioCierrePage: React.FC = () => {
       }
 
       // Update closing record
-      const updateData: InicioCierreUpdate = {
+      const updateData = {
         stock_cierre: producto.stock,
         fecha_cierre: new Date().toISOString(),
       };
 
-      const { error: updateError } = await supabase
-        .from('inicioycierre')
+      const { error: updateError } = await (supabase
+        .from('inicioycierre') as any)
         .update(updateData)
         .eq('id', registro.id);
 
@@ -223,7 +223,7 @@ export const InicioCierrePage: React.FC = () => {
       const { data: productos, error: fetchError } = await supabase
         .from('productos')
         .select('id, stock')
-        .in('id', productIds);
+        .in('id', productIds) as any;
 
       if (fetchError) throw fetchError;
 
@@ -234,19 +234,19 @@ export const InicioCierrePage: React.FC = () => {
       }
 
       // Create a map of product stock
-      const stockMap = new Map(productos.map((p) => [p.id, p.stock]));
+      const stockMap = new Map(productos.map((p: any) => [p.id, p.stock]));
 
       // Get all registro IDs to update
       const registroIds = registrosAbiertos.map((r) => r.id);
       const fechaCierre = new Date().toISOString();
 
       // Update all records at once using PostgreSQL IN clause
-      const updateFechaCierre: InicioCierreUpdate = {
+      const updateFechaCierre = {
         fecha_cierre: fechaCierre,
       };
 
-      const { error: updateError } = await supabase
-        .from('inicioycierre')
+      const { error: updateError } = await (supabase
+        .from('inicioycierre') as any)
         .update(updateFechaCierre)
         .in('id', registroIds)
         .is('fecha_cierre', null);
@@ -258,11 +258,11 @@ export const InicioCierrePage: React.FC = () => {
 
       // Now update stock_cierre individually (since each has different value)
       const updatePromises = registrosAbiertos.map((registro) => {
-        const updateStockCierre: InicioCierreUpdate = {
+        const updateStockCierre = {
           stock_cierre: stockMap.get(registro.producto_id) || 0,
         };
-        return supabase
-          .from('inicioycierre')
+        return (supabase
+          .from('inicioycierre') as any)
           .update(updateStockCierre)
           .eq('id', registro.id);
       });
@@ -277,7 +277,7 @@ export const InicioCierrePage: React.FC = () => {
 
       // Calculate total sold
       const totalVendido = registrosAbiertos.reduce((sum, registro) => {
-        const stockCierre = stockMap.get(registro.producto_id) || 0;
+        const stockCierre = Number(stockMap.get(registro.producto_id) || 0);
         return sum + Math.max(registro.stock_inicio - stockCierre, 0);
       }, 0);
 
