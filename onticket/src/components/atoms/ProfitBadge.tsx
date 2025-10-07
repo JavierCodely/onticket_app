@@ -7,43 +7,92 @@ import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { FormattedNumber } from '@/components/atoms/FormattedNumber';
+import { FormattedCurrency } from '@/components/atoms/FormattedCurrency';
+import type { CurrencyCode } from '@/types/currency';
 
-interface ProfitBadgeProps {
+interface ProfitBadgePropsWithPrices {
   precioCompra: number;
   precioVenta: number;
   showIcon?: boolean;
+  profit?: never;
+  profitPercentage?: never;
+  currency?: never;
 }
 
-export const ProfitBadge: React.FC<ProfitBadgeProps> = ({
-  precioCompra,
-  precioVenta,
-  showIcon = false,
-}) => {
-  const calculateProfitMargin = () => {
-    // Handle edge case: if buy price is 0, can't calculate margin
+interface ProfitBadgePropsWithProfit {
+  profit: number;
+  profitPercentage: number;
+  currency: CurrencyCode;
+  showIcon?: boolean;
+  label?: string;
+  colorScheme?: 'discount' | 'profit';
+  precioCompra?: never;
+  precioVenta?: never;
+}
+
+type ProfitBadgeProps = ProfitBadgePropsWithPrices | ProfitBadgePropsWithProfit;
+
+export const ProfitBadge: React.FC<ProfitBadgeProps> = (props) => {
+  const { showIcon = false } = props;
+
+  let profitMargin: number;
+  let profitAmount: number | undefined;
+  let currency: CurrencyCode | undefined;
+  let label = 'Ganancia';
+  let colorScheme: 'discount' | 'profit' = 'profit';
+
+  // Determine if using prices or direct profit values
+  if ('precioCompra' in props && props.precioCompra !== undefined) {
+    // Calculate profit margin from prices
+    const { precioCompra, precioVenta } = props;
+
     if (precioCompra === 0 || precioCompra === null || precioCompra === undefined) {
-      return 0;
+      profitMargin = 0;
+    } else {
+      const markup = ((precioVenta - precioCompra) / precioCompra) * 100;
+      profitMargin = Math.round(markup * 100) / 100;
     }
+  } else {
+    // Use direct profit values
+    profitMargin = props.profitPercentage;
+    profitAmount = props.profit;
+    currency = props.currency;
+    label = props.label || 'Ganancia';
+    colorScheme = props.colorScheme || 'profit';
+  }
 
-    // Profit Markup = ((Sell Price - Buy Price) / Buy Price) × 100
-    // This shows the percentage increase over the purchase price
-    // Example: Buy $1500, Sell $3000 = 100% markup (doubled the price)
-    const markup = ((precioVenta - precioCompra) / precioCompra) * 100;
-
-    // Round to 2 decimal places to avoid floating point errors
-    const rounded = Math.round(markup * 100) / 100;
-
-    return rounded;
-  };
-
-  const profitMargin = calculateProfitMargin();
   const isPositive = profitMargin > 0;
   const isZero = profitMargin === 0;
 
   const getVariant = () => {
+    if (colorScheme === 'discount') {
+      // Custom colors for discount
+      // 0-30%: Green, 31-49%: Purple, 50%+: Gold
+      return 'default'; // We'll use custom classes instead
+    }
+
+    // Default profit colors
     if (profitMargin >= 50) return 'default'; // Green for high profit (≥50%)
     if (profitMargin >= 20) return 'secondary'; // Gray for medium profit (20-49%)
     return 'destructive'; // Red for low/negative profit (<20%)
+  };
+
+  const getDiscountColorClass = () => {
+    if (colorScheme !== 'discount') return '';
+
+    if (profitMargin >= 50) {
+      // Gold for 50%+
+      return 'bg-gradient-to-r from-yellow-500 to-yellow-600 text-white border-yellow-600';
+    } else if (profitMargin >= 31) {
+      // Purple neon for 31-49%
+      return 'bg-gradient-to-r from-purple-500 to-purple-600 text-white border-purple-600';
+    } else if (profitMargin >= 0) {
+      // Green for 0-30%
+      return 'bg-gradient-to-r from-green-500 to-green-600 text-white border-green-600';
+    }
+
+    // Negative discount (shouldn't happen, but handle it)
+    return 'bg-red-500 text-white border-red-600';
   };
 
   const getIcon = () => {
@@ -52,10 +101,30 @@ export const ProfitBadge: React.FC<ProfitBadgeProps> = ({
   };
 
   return (
-    <Badge variant={getVariant()} className="gap-1">
-      {showIcon && getIcon()}
-      {profitMargin >= 0 ? '+' : ''}
-      <FormattedNumber value={profitMargin} decimals={1} /> margen
-    </Badge>
+    <div className="flex flex-col gap-1">
+      {profitAmount !== undefined && currency && (
+        <div className="text-xs flex items-center justify-between">
+          <span className="text-muted-foreground">{label}:</span>
+          <FormattedCurrency
+            value={profitAmount}
+            currency={currency}
+            className="font-mono font-semibold text-primary"
+          />
+        </div>
+      )}
+      {colorScheme === 'discount' ? (
+        <Badge className={`gap-1 w-fit ${getDiscountColorClass()}`}>
+          {showIcon && getIcon()}
+          {profitMargin >= 0 ? '+' : ''}
+          <FormattedNumber value={profitMargin} decimals={1} />% {label.toLowerCase()}
+        </Badge>
+      ) : (
+        <Badge variant={getVariant()} className="gap-1 w-fit">
+          {showIcon && getIcon()}
+          {profitMargin >= 0 ? '+' : ''}
+          <FormattedNumber value={profitMargin} decimals={1} />% {label.toLowerCase()}
+        </Badge>
+      )}
+    </div>
   );
 };

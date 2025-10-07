@@ -1,6 +1,7 @@
 /**
  * Supabase Client Configuration
  * Initializes and exports the Supabase client instance
+ * Updated: 2025-10-07 - Added support for Combos tables
  */
 
 import { createClient } from '@supabase/supabase-js';
