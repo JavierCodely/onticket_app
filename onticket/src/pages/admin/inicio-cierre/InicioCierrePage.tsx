@@ -35,9 +35,10 @@ export const InicioCierrePage: React.FC = () => {
   const [filteredRegistros, setFilteredRegistros] = useState<InicioCierre[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Filters
-  const [fechaDesde, setFechaDesde] = useState('');
-  const [fechaHasta, setFechaHasta] = useState('');
+  // Filters - Initialize with today's date
+  const today = new Date().toISOString().split('T')[0];
+  const [fechaDesde, setFechaDesde] = useState(today);
+  const [fechaHasta, setFechaHasta] = useState(today);
   const [selectedCategory, setSelectedCategory] = useState('all');
 
   // Dialogs
