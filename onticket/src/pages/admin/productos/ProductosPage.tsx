@@ -108,7 +108,7 @@ export const ProductosPage: React.FC = () => {
   }, [productos, searchTerm, selectedCategory, showLowStock]);
 
   // Create product
-  const handleCreateProduct = async (data: ProductoFormData, imageFile: File | null) => {
+  const handleCreateProduct = async (data: ProductoFormData, imageFile: File | null | undefined) => {
     if (!user) return;
 
     try {
@@ -166,7 +166,7 @@ export const ProductosPage: React.FC = () => {
   };
 
   // Update product
-  const handleUpdateProduct = async (data: ProductoFormData, imageFile: File | null) => {
+  const handleUpdateProduct = async (data: ProductoFormData, imageFile: File | null | undefined) => {
     if (!user || !selectedProducto) return;
 
     try {
@@ -175,7 +175,7 @@ export const ProductosPage: React.FC = () => {
       let imagen_url = selectedProducto.imagen_url;
 
       // Handle image changes
-      if (imageFile) {
+      if (imageFile instanceof File) {
         // New image file provided - upload and replace old one
         const { url, error } = await updateImage(
           STORAGE_BUCKETS.PRODUCTOS,
@@ -189,12 +189,14 @@ export const ProductosPage: React.FC = () => {
           return;
         }
         imagen_url = url;
-      } else if (imageFile === null && selectedProducto.imagen_url) {
-        // Image was removed (imageFile is explicitly null and there was an image before)
-        // Delete the old image from storage
-        await deleteImage(STORAGE_BUCKETS.PRODUCTOS, selectedProducto.imagen_url);
+      } else if (imageFile === null) {
+        // Image was explicitly removed - delete from storage if exists
+        if (selectedProducto.imagen_url) {
+          await deleteImage(STORAGE_BUCKETS.PRODUCTOS, selectedProducto.imagen_url);
+        }
         imagen_url = null;
       }
+      // If imageFile === undefined, keep the existing imagen_url unchanged
 
       // Update product
       const { error } = await supabase

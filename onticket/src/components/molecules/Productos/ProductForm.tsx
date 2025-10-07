@@ -63,7 +63,7 @@ type ProductFormData = z.infer<typeof productSchema>;
 
 interface ProductFormProps {
   producto?: Producto | null;
-  onSubmit: (data: ProductFormData, imageFile: File | null) => Promise<void>;
+  onSubmit: (data: ProductFormData, imageFile: File | null | undefined) => Promise<void>;
   onCancel: () => void;
   isSubmitting?: boolean;
 }
@@ -74,7 +74,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   onCancel,
   isSubmitting = false,
 }) => {
-  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imageFile, setImageFile] = useState<File | null | undefined>(undefined);
   const [shouldDeleteImage, setShouldDeleteImage] = useState(false);
   const { defaultCurrency } = useCurrency();
   
@@ -139,6 +139,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
 
   const handleFormSubmit = async (data: ProductFormData) => {
     // Si el usuario eliminó la imagen, pasar null explícitamente
+    // Si no tocó la imagen, pasar undefined
     const finalImageFile = shouldDeleteImage ? null : imageFile;
     await onSubmit(data, finalImageFile);
   };
