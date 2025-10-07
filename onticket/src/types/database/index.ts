@@ -46,5 +46,14 @@ export type {
   InicioCierreWithProducto,
 } from './InicioCierre';
 
+// Promociones types
+export type {
+  Promocion,
+  PromocionWithProducto,
+  PromocionInsert,
+  PromocionUpdate,
+  PromocionFormData,
+} from './Promociones';
+
 // Database schema
 export type { Database } from './database';

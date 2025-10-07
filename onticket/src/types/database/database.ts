@@ -10,6 +10,7 @@ import type { Producto, ProductoInsert, ProductoUpdate } from './Productos';
 import type { Sale, SaleInsert, SaleUpdate } from './Sale';
 import type { InicioCierre, InicioCierreInsert, InicioCierreUpdate } from './InicioCierre';
 import type { Combo, ComboInsert, ComboUpdate, ComboProducto } from './Combos';
+import type { Promocion, PromocionInsert, PromocionUpdate } from './Promociones';
 
 /**
  * Database schema type for Supabase client
@@ -52,6 +53,11 @@ export type Database = {
         Row: ComboProducto;
         Insert: Omit<ComboProducto, 'id' | 'created_at'>;
         Update: Partial<Omit<ComboProducto, 'id' | 'created_at'>>;
+      };
+      promociones: {
+        Row: Promocion;
+        Insert: PromocionInsert;
+        Update: PromocionUpdate;
       };
     };
   };
