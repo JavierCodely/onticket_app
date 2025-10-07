@@ -15,7 +15,7 @@ import type { Combo, ComboInsert, ComboUpdate, ComboProducto } from './Combos';
  * Database schema type for Supabase client
  * Used for type-safe database operations
  */
-export interface Database {
+export type Database = {
   public: {
     Tables: {
       club: {
@@ -55,4 +55,4 @@ export interface Database {
       };
     };
   };
-}
+};

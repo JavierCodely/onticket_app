@@ -23,8 +23,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import type { ComboWithProducts, ComboFormData } from '@/types/database/Combos';
+import type { Database } from '@/types/database';
+import type { ComboWithProducts, ComboFormData, Combo } from '@/types/database/Combos';
 import type { Producto } from '@/types/database/Productos';
+
+// Type aliases from Database schema for type-safe operations
+type ComboInsert = Database['public']['Tables']['combos']['Insert'];
+type ComboUpdate = Database['public']['Tables']['combos']['Update'];
+type ComboProductoInsert = Database['public']['Tables']['combo_productos']['Insert'];
 
 export const CombosPage: React.FC = () => {
   const { user } = useAuth();
@@ -52,11 +58,12 @@ export const CombosPage: React.FC = () => {
 
       if (error) throw error;
 
-      setProductos(data || []);
+      const productosData = (data || []) as Producto[];
+      setProductos(productosData);
 
       // Create a map for quick lookup
       const map = new Map<string, Producto>();
-      data?.forEach((p) => map.set(p.id, p));
+      productosData.forEach((p) => map.set(p.id, p));
       setProductosMap(map);
     } catch (error) {
       console.error('Error fetching products:', error);
@@ -156,42 +163,44 @@ export const CombosPage: React.FC = () => {
       }
 
       // Insert combo
-      const { data: comboData, error: comboError } = await supabase
-        .from('combos')
-        .insert({
-          club_id: user.club.id,
-          creado_por: user.personal.id,
-          nombre: data.nombre,
-          precio_real,
-          precio_combo,
-          precio_real_ars,
-          precio_combo_ars: data.precio_combo_ars,
-          precio_real_usd,
-          precio_combo_usd: data.precio_combo_usd,
-          precio_real_brl,
-          precio_combo_brl: data.precio_combo_brl,
-          limite_usos: data.tiene_limite_usos ? data.limite_usos : null,
-          limite_usos_por_venta: data.limite_usos_por_venta,
-          activo: data.activo,
-          imagen_url,
-        })
+      const insertPayload: ComboInsert = {
+        club_id: user.club.id,
+        creado_por: user.personal.id,
+        nombre: data.nombre,
+        precio_real,
+        precio_combo, 
+        precio_real_ars,
+        precio_combo_ars: data.precio_combo_ars,
+        precio_real_usd,
+        precio_combo_usd: data.precio_combo_usd,
+        precio_real_brl,
+        precio_combo_brl: data.precio_combo_brl,
+        limite_usos: data.tiene_limite_usos ? data.limite_usos : null,
+        limite_usos_por_venta: data.limite_usos_por_venta,
+        activo: data.activo,
+        imagen_url,
+      };
+
+      const { data: comboData, error: comboError } = await (supabase
+        .from('combos') as any)
+        .insert(insertPayload)
         .select()
-        .single() as { data: ComboWithProducts | null; error: any };
+        .single();
 
       if (comboError) throw comboError;
-      if (!comboData) throw new Error('No se pudo crear el combo');
+      const typedComboData = comboData as Combo;
 
       // Insert combo products
-      const comboProductos = data.productos.map((item) => ({
+      const comboProductos: ComboProductoInsert[] = data.productos.map((item) => ({
         club_id: user.club.id,
-        combo_id: comboData.id,
+        combo_id: typedComboData.id,
         producto_id: item.producto_id,
         cantidad: item.cantidad,
       }));
 
-      const { error: productosError } = await supabase
-        .from('combo_productos')
-        .insert(comboProductos) as { error: any };
+      const { error: productosError } = await (supabase
+        .from('combo_productos') as any)
+        .insert(comboProductos);
 
       if (productosError) throw productosError;
 
@@ -267,37 +276,39 @@ export const CombosPage: React.FC = () => {
       }
 
       // Update combo
-      const { error: comboError } = await supabase
-        .from('combos')
-        .update({
-          nombre: data.nombre,
-          precio_real,
-          precio_combo,
-          precio_real_ars,
-          precio_combo_ars: data.precio_combo_ars,
-          precio_real_usd,
-          precio_combo_usd: data.precio_combo_usd,
-          precio_real_brl,
-          precio_combo_brl: data.precio_combo_brl,
-          limite_usos: data.tiene_limite_usos ? data.limite_usos : null,
-          limite_usos_por_venta: data.limite_usos_por_venta,
-          activo: data.activo,
-          imagen_url,
-        })
+      const updatePayload: ComboUpdate = {
+        nombre: data.nombre,
+        precio_real,
+        precio_combo,
+        precio_real_ars,
+        precio_combo_ars: data.precio_combo_ars,
+        precio_real_usd,
+        precio_combo_usd: data.precio_combo_usd,
+        precio_real_brl,
+        precio_combo_brl: data.precio_combo_brl,
+        limite_usos: data.tiene_limite_usos ? data.limite_usos : null,
+        limite_usos_por_venta: data.limite_usos_por_venta,
+        activo: data.activo,
+        imagen_url,
+      };
+
+      const { error: comboError } = await (supabase
+        .from('combos') as any)
+        .update(updatePayload as any)
         .eq('id', selectedCombo.id);
 
       if (comboError) throw comboError;
 
       // Delete existing combo_productos
-      const { error: deleteError } = await supabase
-        .from('combo_productos')
+      const { error: deleteError } = await (supabase
+        .from('combo_productos') as any)
         .delete()
         .eq('combo_id', selectedCombo.id);
 
       if (deleteError) throw deleteError;
 
       // Insert new combo products
-      const comboProductos = data.productos.map((item) => ({
+      const comboProductos: ComboProductoInsert[] = data.productos.map((item) => ({
         club_id: user.club.id,
         combo_id: selectedCombo.id,
         producto_id: item.producto_id,
@@ -306,7 +317,7 @@ export const CombosPage: React.FC = () => {
 
       const { error: productosError } = await supabase
         .from('combo_productos')
-        .insert(comboProductos);
+        .insert(comboProductos as any);
 
       if (productosError) throw productosError;
 
@@ -325,9 +336,13 @@ export const CombosPage: React.FC = () => {
   // Toggle combo active status
   const handleToggleActivo = async (combo: ComboWithProducts) => {
     try {
-      const { error } = await supabase
-        .from('combos')
-        .update({ activo: !combo.activo })
+      const updatePayload = { 
+        activo: !combo.activo 
+      };
+      
+      const { error } = await (supabase
+        .from('combos') as any)
+        .update(updatePayload)
         .eq('id', combo.id);
 
       if (error) throw error;

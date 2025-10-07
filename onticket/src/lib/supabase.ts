@@ -4,7 +4,7 @@
  * Updated: 2025-10-07 - Added support for Combos tables
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/database';
 
 // Environment variables for Supabase configuration
@@ -22,10 +22,13 @@ if (!supabaseUrl || !supabaseAnonKey) {
  * Supabase client instance
  * Use this throughout the application for all Supabase operations
  */
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
+export const supabase: SupabaseClient<Database> = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true,
   },
 });
+
+// Re-export Database type for convenience
+export type { Database };
