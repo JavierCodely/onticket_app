@@ -18,7 +18,7 @@ interface ProductModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   producto?: Producto | null;
-  onSubmit: (data: ProductoFormData, imageFile: File | null) => Promise<void>;
+  onSubmit: (data: ProductoFormData, imageFile: File | null | undefined) => Promise<void>;
   isSubmitting?: boolean;
 }
 
