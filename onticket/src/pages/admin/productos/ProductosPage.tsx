@@ -20,6 +20,8 @@ import {
   StockRenewalModal,
 } from '@/components/organisms/Productos';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCurrency } from '@/hooks/useCurrency';
+import { getPriceForCurrency } from '@/lib/currency-utils';
 import { supabase } from '@/lib/supabase';
 import { uploadImage, updateImage, deleteImage, STORAGE_BUCKETS } from '@/lib/storage';
 import { toast } from 'sonner';
@@ -41,6 +43,7 @@ type ViewMode = 'grid' | 'table';
 
 export const ProductosPage: React.FC = () => {
   const { user } = useAuth();
+  const { defaultCurrency } = useCurrency();
   const [productos, setProductos] = useState<Producto[]>([]);
   const [filteredProductos, setFilteredProductos] = useState<Producto[]>([]);
   const [loading, setLoading] = useState(true);
@@ -104,8 +107,15 @@ export const ProductosPage: React.FC = () => {
       filtered = filtered.filter((p) => p.min_stock > 0 && p.stock <= p.min_stock);
     }
 
+    // Sort by sale price (highest to lowest) based on default currency
+    filtered = filtered.sort((a, b) => {
+      const precioA = getPriceForCurrency(a, defaultCurrency, 'venta');
+      const precioB = getPriceForCurrency(b, defaultCurrency, 'venta');
+      return precioB - precioA; // Descendente (mayor a menor)
+    });
+
     setFilteredProductos(filtered);
-  }, [productos, searchTerm, selectedCategory, showLowStock]);
+  }, [productos, searchTerm, selectedCategory, showLowStock, defaultCurrency]);
 
   // Create product
   const handleCreateProduct = async (data: ProductoFormData, imageFile: File | null | undefined) => {
