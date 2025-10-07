@@ -109,7 +109,17 @@ export const PromocionesPage: React.FC = () => {
 
       const { data, error } = await supabase
         .from('promociones')
-        .select('*')
+        .select(`
+          *,
+          productos!inner(
+            id,
+            nombre,
+            categoria,
+            precio_venta,
+            precio_compra,
+            stock
+          )
+        `)
         .order('created_at', { ascending: false });
 
       if (error) throw error;

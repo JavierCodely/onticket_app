@@ -87,11 +87,16 @@ export const PromocionFilters: React.FC<PromocionFiltersProps> = ({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos los creadores</SelectItem>
-              {creators.map((creator) => (
-                <SelectItem key={creator.id} value={creator.id}>
-                  {creator.nombre_completo || creator.user_id}
-                </SelectItem>
-              ))}
+              {creators.map((creator) => {
+                const nombreCompleto = [creator.nombre, creator.apellido]
+                  .filter(Boolean)
+                  .join(' ') || creator.user_id;
+                return (
+                  <SelectItem key={creator.id} value={creator.id}>
+                    {nombreCompleto}
+                  </SelectItem>
+                );
+              })}
             </SelectContent>
           </Select>
         </div>

@@ -102,7 +102,11 @@ export const PromocionTable: React.FC<PromocionTableProps> = ({
                 </TableCell>
                 <TableCell>
                   <div className="text-sm">
-                    {creator?.nombre_completo || 'Desconocido'}
+                    {creator
+                      ? [creator.nombre, creator.apellido].filter(Boolean).join(' ') || 
+                        `Usuario ${creator.rol}` || 
+                        'Sin nombre'
+                      : 'Desconocido'}
                   </div>
                 </TableCell>
                 <TableCell>
