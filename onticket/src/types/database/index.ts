@@ -22,6 +22,17 @@ export type {
   StockRenewalData,
 } from './Productos';
 
+// Combos types
+export type {
+  Combo,
+  ComboProducto,
+  ComboWithProducts,
+  ComboProductoItem,
+  ComboFormData,
+  ComboInsert,
+  ComboUpdate,
+} from './Combos';
+
 // Sale types
 export type { Sale, SaleInsert, SaleUpdate } from './Sale';
 
