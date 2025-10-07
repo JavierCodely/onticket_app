@@ -118,6 +118,13 @@ export const PromocionesPage: React.FC = () => {
             precio_venta,
             precio_compra,
             stock
+          ),
+          personal:creado_por(
+            id,
+            nombre,
+            apellido,
+            rol,
+            user_id
           )
         `)
         .order('created_at', { ascending: false });

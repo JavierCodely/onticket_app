@@ -15,8 +15,10 @@ import { NumberInput } from '@/components/atoms/NumberInput';
 import { Switch } from '@/components/ui/switch';
 import { ProfitBadge } from '@/components/atoms/ProfitBadge';
 import { FormattedCurrency } from '@/components/atoms/FormattedCurrency';
+import { useCurrency } from '@/hooks/useCurrency';
 import type { PromocionWithProducto, PromocionFormData } from '@/types/database/Promociones';
 import type { Producto } from '@/types/database/Productos';
+import type { CurrencyCode } from '@/types/currency';
 
 const promocionSchema = z.object({
   producto_id: z.string().min(1, 'Debes seleccionar un producto'),
@@ -60,6 +62,7 @@ export const PromocionForm: React.FC<PromocionFormProps> = ({
   onCancel,
   isSubmitting = false,
 }) => {
+  const { defaultCurrency } = useCurrency();
   const [imageFile, setImageFile] = useState<File | null | undefined>(undefined);
   const [shouldDeleteImage, setShouldDeleteImage] = useState(false);
 
@@ -197,6 +200,75 @@ export const PromocionForm: React.FC<PromocionFormProps> = ({
   const handleFormSubmit = async (data: PromocionFormSchema) => {
     const finalImageFile = shouldDeleteImage ? null : imageFile;
     await onSubmit(data, finalImageFile);
+  };
+
+  // Helper to check if currency has values
+  const hasCurrencyValues = (producto: Producto | undefined, currency: CurrencyCode) => {
+    if (!producto) return false;
+    
+    switch (currency) {
+      case 'ARS':
+        return producto.precio_venta_ars > 0 || producto.precio_compra_ars > 0;
+      case 'USD':
+        return producto.precio_venta_usd > 0 || producto.precio_compra_usd > 0;
+      case 'BRL':
+        return producto.precio_venta_brl > 0 || producto.precio_compra_brl > 0;
+      default:
+        return false;
+    }
+  };
+
+  // Component to render currency projection
+  const CurrencyProjection: React.FC<{
+    currency: CurrencyCode;
+    projection: any;
+    isFirst: boolean;
+    isDefault: boolean;
+  }> = ({ currency, projection, isFirst, isDefault }) => {
+    const currencyKey = currency.toLowerCase() as 'ars' | 'usd' | 'brl';
+    const data = projection[currencyKey];
+    const discount = porcentajesDescuento[currencyKey];
+
+    if (!hasCurrencyValues(selectedProducto, currency)) return null;
+
+    return (
+      <div className={`space-y-1 text-xs ${!isFirst ? 'border-t pt-2' : ''}`}>
+        <div className={`font-medium text-[10px] uppercase tracking-wide flex items-center gap-1.5 ${
+          isDefault ? 'text-primary' : ''
+        }`}>
+          {currency}
+          {isDefault && <span className="text-[9px] bg-primary/10 text-primary px-1.5 py-0.5 rounded">PREDETERMINADA</span>}
+        </div>
+        <div className="flex justify-between">
+          <span className="text-muted-foreground">Sin promoción:</span>
+          <FormattedCurrency value={data.totalSinPromocion} currency={currency} className="font-mono text-xs" />
+        </div>
+        <div className="flex justify-between">
+          <span className="text-muted-foreground">Con promoción:</span>
+          <FormattedCurrency value={data.totalConPromocion} currency={currency} className="font-mono font-semibold text-xs text-green-600 dark:text-green-400" />
+        </div>
+        <div className="flex justify-between border-t pt-1">
+          <span className="text-muted-foreground">Descuento:</span>
+          <FormattedCurrency value={data.descuentoTotal} currency={currency} className="font-mono text-xs text-orange-600 dark:text-orange-400" />
+        </div>
+        <div className="flex justify-between">
+          <span className="text-muted-foreground">% Descuento:</span>
+          <span className="font-mono text-xs text-orange-600 dark:text-orange-400">{discount.toFixed(1)}%</span>
+        </div>
+        <div className="flex justify-between border-t pt-1">
+          <span className="text-muted-foreground">Costo total:</span>
+          <FormattedCurrency value={data.costoTotal} currency={currency} className="font-mono text-xs" />
+        </div>
+        <div className="flex justify-between">
+          <span className="text-muted-foreground">Ganancia sin promo:</span>
+          <FormattedCurrency value={data.gananciaSinPromocion} currency={currency} className="font-mono text-xs text-green-600 dark:text-green-400" />
+        </div>
+        <div className="flex justify-between font-semibold border-t pt-1">
+          <span>Ganancia con promo:</span>
+          <FormattedCurrency value={data.gananciaConPromocion} currency={currency} className="font-mono text-xs text-green-700 dark:text-green-300" />
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -701,109 +773,18 @@ export const PromocionForm: React.FC<PromocionFormProps> = ({
                   </Label>
                 </div>
 
-                {/* ARS Projection */}
-                {(selectedProducto.precio_venta_ars > 0 || selectedProducto.precio_compra_ars > 0) && (
-                  <div className="space-y-1 text-xs">
-                    <div className="font-medium text-blue-900 dark:text-blue-100 text-[10px] uppercase tracking-wide">ARS</div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Sin promoción:</span>
-                      <FormattedCurrency value={proyeccionMinima.ars.totalSinPromocion} currency="ARS" className="font-mono text-xs" />
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Con promoción:</span>
-                      <FormattedCurrency value={proyeccionMinima.ars.totalConPromocion} currency="ARS" className="font-mono font-semibold text-xs text-green-600 dark:text-green-400" />
-                    </div>
-                    <div className="flex justify-between border-t border-blue-100 dark:border-blue-900 pt-1">
-                      <span className="text-muted-foreground">Descuento:</span>
-                      <FormattedCurrency value={proyeccionMinima.ars.descuentoTotal} currency="ARS" className="font-mono text-xs text-orange-600 dark:text-orange-400" />
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">% Descuento:</span>
-                      <span className="font-mono text-xs text-orange-600 dark:text-orange-400">{porcentajesDescuento.ars.toFixed(1)}%</span>
-                    </div>
-                    <div className="flex justify-between border-t border-blue-100 dark:border-blue-900 pt-1">
-                      <span className="text-muted-foreground">Costo total:</span>
-                      <FormattedCurrency value={proyeccionMinima.ars.costoTotal} currency="ARS" className="font-mono text-xs" />
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Ganancia sin promo:</span>
-                      <FormattedCurrency value={proyeccionMinima.ars.gananciaSinPromocion} currency="ARS" className="font-mono text-xs text-green-600 dark:text-green-400" />
-                    </div>
-                    <div className="flex justify-between font-semibold border-t border-blue-100 dark:border-blue-900 pt-1">
-                      <span className="text-blue-900 dark:text-blue-100">Ganancia con promo:</span>
-                      <FormattedCurrency value={proyeccionMinima.ars.gananciaConPromocion} currency="ARS" className="font-mono text-xs text-green-700 dark:text-green-300" />
-                    </div>
-                  </div>
-                )}
-
-                {/* USD Projection */}
-                {(selectedProducto.precio_venta_usd > 0 || selectedProducto.precio_compra_usd > 0) && (
-                  <div className="space-y-1 text-xs border-t border-blue-200 dark:border-blue-800 pt-2">
-                    <div className="font-medium text-blue-900 dark:text-blue-100 text-[10px] uppercase tracking-wide">USD</div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Sin promoción:</span>
-                      <FormattedCurrency value={proyeccionMinima.usd.totalSinPromocion} currency="USD" className="font-mono text-xs" />
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Con promoción:</span>
-                      <FormattedCurrency value={proyeccionMinima.usd.totalConPromocion} currency="USD" className="font-mono font-semibold text-xs text-green-600 dark:text-green-400" />
-                    </div>
-                    <div className="flex justify-between border-t border-blue-100 dark:border-blue-900 pt-1">
-                      <span className="text-muted-foreground">Descuento:</span>
-                      <FormattedCurrency value={proyeccionMinima.usd.descuentoTotal} currency="USD" className="font-mono text-xs text-orange-600 dark:text-orange-400" />
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">% Descuento:</span>
-                      <span className="font-mono text-xs text-orange-600 dark:text-orange-400">{porcentajesDescuento.usd.toFixed(1)}%</span>
-                    </div>
-                    <div className="flex justify-between border-t border-blue-100 dark:border-blue-900 pt-1">
-                      <span className="text-muted-foreground">Costo total:</span>
-                      <FormattedCurrency value={proyeccionMinima.usd.costoTotal} currency="USD" className="font-mono text-xs" />
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Ganancia sin promo:</span>
-                      <FormattedCurrency value={proyeccionMinima.usd.gananciaSinPromocion} currency="USD" className="font-mono text-xs text-green-600 dark:text-green-400" />
-                    </div>
-                    <div className="flex justify-between font-semibold border-t border-blue-100 dark:border-blue-900 pt-1">
-                      <span className="text-blue-900 dark:text-blue-100">Ganancia con promo:</span>
-                      <FormattedCurrency value={proyeccionMinima.usd.gananciaConPromocion} currency="USD" className="font-mono text-xs text-green-700 dark:text-green-300" />
-                    </div>
-                  </div>
-                )}
-
-                {/* BRL Projection */}
-                {(selectedProducto.precio_venta_brl > 0 || selectedProducto.precio_compra_brl > 0) && (
-                  <div className="space-y-1 text-xs border-t border-blue-200 dark:border-blue-800 pt-2">
-                    <div className="font-medium text-blue-900 dark:text-blue-100 text-[10px] uppercase tracking-wide">BRL</div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Sin promoción:</span>
-                      <FormattedCurrency value={proyeccionMinima.brl.totalSinPromocion} currency="BRL" className="font-mono text-xs" />
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Con promoción:</span>
-                      <FormattedCurrency value={proyeccionMinima.brl.totalConPromocion} currency="BRL" className="font-mono font-semibold text-xs text-green-600 dark:text-green-400" />
-                    </div>
-                    <div className="flex justify-between border-t border-blue-100 dark:border-blue-900 pt-1">
-                      <span className="text-muted-foreground">Descuento:</span>
-                      <FormattedCurrency value={proyeccionMinima.brl.descuentoTotal} currency="BRL" className="font-mono text-xs text-orange-600 dark:text-orange-400" />
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">% Descuento:</span>
-                      <span className="font-mono text-xs text-orange-600 dark:text-orange-400">{porcentajesDescuento.brl.toFixed(1)}%</span>
-                    </div>
-                    <div className="flex justify-between border-t border-blue-100 dark:border-blue-900 pt-1">
-                      <span className="text-muted-foreground">Costo total:</span>
-                      <FormattedCurrency value={proyeccionMinima.brl.costoTotal} currency="BRL" className="font-mono text-xs" />
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Ganancia sin promo:</span>
-                      <FormattedCurrency value={proyeccionMinima.brl.gananciaSinPromocion} currency="BRL" className="font-mono text-xs text-green-600 dark:text-green-400" />
-                    </div>
-                    <div className="flex justify-between font-semibold border-t border-blue-100 dark:border-blue-900 pt-1">
-                      <span className="text-blue-900 dark:text-blue-100">Ganancia con promo:</span>
-                      <FormattedCurrency value={proyeccionMinima.brl.gananciaConPromocion} currency="BRL" className="font-mono text-xs text-green-700 dark:text-green-300" />
-                    </div>
-                  </div>
+                {/* Render only the default currency */}
+                {hasCurrencyValues(selectedProducto, defaultCurrency) ? (
+                  <CurrencyProjection
+                    currency={defaultCurrency}
+                    projection={proyeccionMinima}
+                    isFirst={true}
+                    isDefault={true}
+                  />
+                ) : (
+                  <p className="text-xs text-muted-foreground text-center py-2">
+                    No hay precios configurados para {defaultCurrency}
+                  </p>
                 )}
               </div>
 
@@ -816,109 +797,18 @@ export const PromocionForm: React.FC<PromocionFormProps> = ({
                     </Label>
                   </div>
 
-                  {/* ARS Projection */}
-                  {(selectedProducto.precio_venta_ars > 0 || selectedProducto.precio_compra_ars > 0) && (
-                    <div className="space-y-1 text-xs">
-                      <div className="font-medium text-purple-900 dark:text-purple-100 text-[10px] uppercase tracking-wide">ARS</div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Sin promoción:</span>
-                        <FormattedCurrency value={proyeccionMaxima.ars.totalSinPromocion} currency="ARS" className="font-mono text-xs" />
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Con promoción:</span>
-                        <FormattedCurrency value={proyeccionMaxima.ars.totalConPromocion} currency="ARS" className="font-mono font-semibold text-xs text-green-600 dark:text-green-400" />
-                      </div>
-                      <div className="flex justify-between border-t border-purple-100 dark:border-purple-900 pt-1">
-                        <span className="text-muted-foreground">Descuento:</span>
-                        <FormattedCurrency value={proyeccionMaxima.ars.descuentoTotal} currency="ARS" className="font-mono text-xs text-orange-600 dark:text-orange-400" />
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">% Descuento:</span>
-                        <span className="font-mono text-xs text-orange-600 dark:text-orange-400">{porcentajesDescuento.ars.toFixed(1)}%</span>
-                      </div>
-                      <div className="flex justify-between border-t border-purple-100 dark:border-purple-900 pt-1">
-                        <span className="text-muted-foreground">Costo total:</span>
-                        <FormattedCurrency value={proyeccionMaxima.ars.costoTotal} currency="ARS" className="font-mono text-xs" />
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Ganancia sin promo:</span>
-                        <FormattedCurrency value={proyeccionMaxima.ars.gananciaSinPromocion} currency="ARS" className="font-mono text-xs text-green-600 dark:text-green-400" />
-                      </div>
-                      <div className="flex justify-between font-semibold border-t border-purple-100 dark:border-purple-900 pt-1">
-                        <span className="text-purple-900 dark:text-purple-100">Ganancia con promo:</span>
-                        <FormattedCurrency value={proyeccionMaxima.ars.gananciaConPromocion} currency="ARS" className="font-mono text-xs text-green-700 dark:text-green-300" />
-                      </div>
-                    </div>
-                  )}
-
-                  {/* USD Projection */}
-                  {(selectedProducto.precio_venta_usd > 0 || selectedProducto.precio_compra_usd > 0) && (
-                    <div className="space-y-1 text-xs border-t border-purple-200 dark:border-purple-800 pt-2">
-                      <div className="font-medium text-purple-900 dark:text-purple-100 text-[10px] uppercase tracking-wide">USD</div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Sin promoción:</span>
-                        <FormattedCurrency value={proyeccionMaxima.usd.totalSinPromocion} currency="USD" className="font-mono text-xs" />
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Con promoción:</span>
-                        <FormattedCurrency value={proyeccionMaxima.usd.totalConPromocion} currency="USD" className="font-mono font-semibold text-xs text-green-600 dark:text-green-400" />
-                      </div>
-                      <div className="flex justify-between border-t border-purple-100 dark:border-purple-900 pt-1">
-                        <span className="text-muted-foreground">Descuento:</span>
-                        <FormattedCurrency value={proyeccionMaxima.usd.descuentoTotal} currency="USD" className="font-mono text-xs text-orange-600 dark:text-orange-400" />
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">% Descuento:</span>
-                        <span className="font-mono text-xs text-orange-600 dark:text-orange-400">{porcentajesDescuento.usd.toFixed(1)}%</span>
-                      </div>
-                      <div className="flex justify-between border-t border-purple-100 dark:border-purple-900 pt-1">
-                        <span className="text-muted-foreground">Costo total:</span>
-                        <FormattedCurrency value={proyeccionMaxima.usd.costoTotal} currency="USD" className="font-mono text-xs" />
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Ganancia sin promo:</span>
-                        <FormattedCurrency value={proyeccionMaxima.usd.gananciaSinPromocion} currency="USD" className="font-mono text-xs text-green-600 dark:text-green-400" />
-                      </div>
-                      <div className="flex justify-between font-semibold border-t border-purple-100 dark:border-purple-900 pt-1">
-                        <span className="text-purple-900 dark:text-purple-100">Ganancia con promo:</span>
-                        <FormattedCurrency value={proyeccionMaxima.usd.gananciaConPromocion} currency="USD" className="font-mono text-xs text-green-700 dark:text-green-300" />
-                      </div>
-                    </div>
-                  )}
-
-                  {/* BRL Projection */}
-                  {(selectedProducto.precio_venta_brl > 0 || selectedProducto.precio_compra_brl > 0) && (
-                    <div className="space-y-1 text-xs border-t border-purple-200 dark:border-purple-800 pt-2">
-                      <div className="font-medium text-purple-900 dark:text-purple-100 text-[10px] uppercase tracking-wide">BRL</div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Sin promoción:</span>
-                        <FormattedCurrency value={proyeccionMaxima.brl.totalSinPromocion} currency="BRL" className="font-mono text-xs" />
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Con promoción:</span>
-                        <FormattedCurrency value={proyeccionMaxima.brl.totalConPromocion} currency="BRL" className="font-mono font-semibold text-xs text-green-600 dark:text-green-400" />
-                      </div>
-                      <div className="flex justify-between border-t border-purple-100 dark:border-purple-900 pt-1">
-                        <span className="text-muted-foreground">Descuento:</span>
-                        <FormattedCurrency value={proyeccionMaxima.brl.descuentoTotal} currency="BRL" className="font-mono text-xs text-orange-600 dark:text-orange-400" />
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">% Descuento:</span>
-                        <span className="font-mono text-xs text-orange-600 dark:text-orange-400">{porcentajesDescuento.brl.toFixed(1)}%</span>
-                      </div>
-                      <div className="flex justify-between border-t border-purple-100 dark:border-purple-900 pt-1">
-                        <span className="text-muted-foreground">Costo total:</span>
-                        <FormattedCurrency value={proyeccionMaxima.brl.costoTotal} currency="BRL" className="font-mono text-xs" />
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Ganancia sin promo:</span>
-                        <FormattedCurrency value={proyeccionMaxima.brl.gananciaSinPromocion} currency="BRL" className="font-mono text-xs text-green-600 dark:text-green-400" />
-                      </div>
-                      <div className="flex justify-between font-semibold border-t border-purple-100 dark:border-purple-900 pt-1">
-                        <span className="text-purple-900 dark:text-purple-100">Ganancia con promo:</span>
-                        <FormattedCurrency value={proyeccionMaxima.brl.gananciaConPromocion} currency="BRL" className="font-mono text-xs text-green-700 dark:text-green-300" />
-                      </div>
-                    </div>
+                  {/* Render only the default currency */}
+                  {hasCurrencyValues(selectedProducto, defaultCurrency) ? (
+                    <CurrencyProjection
+                      currency={defaultCurrency}
+                      projection={proyeccionMaxima}
+                      isFirst={true}
+                      isDefault={true}
+                    />
+                  ) : (
+                    <p className="text-xs text-muted-foreground text-center py-2">
+                      No hay precios configurados para {defaultCurrency}
+                    </p>
                   )}
                 </div>
               )}

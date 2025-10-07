@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Edit, Trash2, Power, ImageIcon } from 'lucide-react';
 import { FormattedCurrency } from '@/components/atoms/FormattedCurrency';
+import { useCurrency } from '@/hooks/useCurrency';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import type { PromocionWithProducto } from '@/types/database/Promociones';
@@ -40,6 +41,22 @@ export const PromocionTable: React.FC<PromocionTableProps> = ({
   productosMap,
   creatorsMap,
 }) => {
+  const { defaultCurrency } = useCurrency();
+
+  // Helper to get price for current currency
+  const getPriceForCurrency = (promocion: PromocionWithProducto, type: 'real' | 'promocion') => {
+    switch (defaultCurrency) {
+      case 'ARS':
+        return type === 'real' ? promocion.precio_real_ars : promocion.precio_promocion_ars;
+      case 'USD':
+        return type === 'real' ? promocion.precio_real_usd : promocion.precio_promocion_usd;
+      case 'BRL':
+        return type === 'real' ? promocion.precio_real_brl : promocion.precio_promocion_brl;
+      default:
+        return type === 'real' ? promocion.precio_real : promocion.precio_promocion;
+    }
+  };
+
   if (promociones.length === 0) {
     return (
       <div className="text-center py-12 border rounded-lg">
@@ -74,9 +91,14 @@ export const PromocionTable: React.FC<PromocionTableProps> = ({
         <TableBody>
           {promociones.map((promocion) => {
             const producto = productosMap.get(promocion.producto_id);
-            const creator = creatorsMap.get(promocion.creado_por);
-            const descuento = promocion.precio_real - promocion.precio_promocion;
-            const porcentajeDescuento = (descuento / promocion.precio_real) * 100;
+            // Use personal from the promocion object first, fallback to creatorsMap
+            const creator = promocion.personal || creatorsMap.get(promocion.creado_por);
+            
+            // Get prices for current currency
+            const precioReal = getPriceForCurrency(promocion, 'real');
+            const precioPromocion = getPriceForCurrency(promocion, 'promocion');
+            const descuento = precioReal - precioPromocion;
+            const porcentajeDescuento = precioReal > 0 ? (descuento / precioReal) * 100 : 0;
             const usosRestantes = promocion.limite_usos
               ? promocion.limite_usos - promocion.cantidad_usos
               : null;
@@ -115,12 +137,12 @@ export const PromocionTable: React.FC<PromocionTableProps> = ({
                   </div>
                 </TableCell>
                 <TableCell className="text-right">
-                  <FormattedCurrency value={promocion.precio_real} currency="ARS" />
+                  <FormattedCurrency value={precioReal} currency={defaultCurrency} />
                 </TableCell>
                 <TableCell className="text-right">
                   <FormattedCurrency
-                    value={promocion.precio_promocion}
-                    currency="ARS"
+                    value={precioPromocion}
+                    currency={defaultCurrency}
                     className="font-semibold text-green-600"
                   />
                 </TableCell>
@@ -128,7 +150,7 @@ export const PromocionTable: React.FC<PromocionTableProps> = ({
                   <div className="flex flex-col items-end">
                     <FormattedCurrency
                       value={descuento}
-                      currency="ARS"
+                      currency={defaultCurrency}
                       className="text-sm"
                     />
                     <span className="text-xs text-muted-foreground">

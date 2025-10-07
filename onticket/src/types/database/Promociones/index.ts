@@ -35,6 +35,13 @@ export interface PromocionWithProducto extends Promocion {
     precio_venta: number;
     stock: number;
   };
+  personal?: {
+    id: string;
+    nombre: string | null;
+    apellido: string | null;
+    rol: string;
+    user_id: string;
+  } | null;
 }
 
 export type PromocionInsert = Omit<Promocion, 'id' | 'cantidad_usos' | 'created_at' | 'updated_at'>;
