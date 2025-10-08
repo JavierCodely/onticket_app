@@ -20,7 +20,8 @@ import type { PromocionWithProducto, PromocionFormData } from '@/types/database/
 import type { Producto, CategoriaProducto } from '@/types/database/Productos';
 import type { CurrencyCode } from '@/types/currency';
 
-const promocionSchema = z.object({
+// Schema factory function to have access to productos for validation
+const createPromocionSchema = (productos: Producto[]) => z.object({
   producto_id: z.string().min(1, 'Debes seleccionar un producto'),
   precio_promocion_ars: z.number().min(0, 'El precio debe ser mayor o igual a 0'),
   precio_promocion_usd: z.number().min(0, 'El precio debe ser mayor o igual a 0'),
@@ -43,9 +44,57 @@ const promocionSchema = z.object({
     message: 'La cantidad máxima debe ser mayor o igual a la mínima',
     path: ['cantidad_maxima'],
   }
+).refine(
+  (data) => {
+    const producto = productos.find((p) => p.id === data.producto_id);
+    if (!producto) return true;
+    
+    // Si el precio de venta ARS es > 0, el precio de promoción ARS debe ser menor al total
+    if (producto.precio_venta_ars > 0 && data.precio_promocion_ars > 0) {
+      const precioVentaTotal = producto.precio_venta_ars * data.cantidad_minima;
+      return data.precio_promocion_ars < precioVentaTotal;
+    }
+    return true;
+  },
+  {
+    message: 'El precio de promoción debe ser menor al precio de venta total',
+    path: ['precio_promocion_ars'],
+  }
+).refine(
+  (data) => {
+    const producto = productos.find((p) => p.id === data.producto_id);
+    if (!producto) return true;
+    
+    // Si el precio de venta USD es > 0, el precio de promoción USD debe ser menor al total
+    if (producto.precio_venta_usd > 0 && data.precio_promocion_usd > 0) {
+      const precioVentaTotal = producto.precio_venta_usd * data.cantidad_minima;
+      return data.precio_promocion_usd < precioVentaTotal;
+    }
+    return true;
+  },
+  {
+    message: 'El precio de promoción debe ser menor al precio de venta total',
+    path: ['precio_promocion_usd'],
+  }
+).refine(
+  (data) => {
+    const producto = productos.find((p) => p.id === data.producto_id);
+    if (!producto) return true;
+    
+    // Si el precio de venta BRL es > 0, el precio de promoción BRL debe ser menor al total
+    if (producto.precio_venta_brl > 0 && data.precio_promocion_brl > 0) {
+      const precioVentaTotal = producto.precio_venta_brl * data.cantidad_minima;
+      return data.precio_promocion_brl < precioVentaTotal;
+    }
+    return true;
+  },
+  {
+    message: 'El precio de promoción debe ser menor al precio de venta total',
+    path: ['precio_promocion_brl'],
+  }
 );
 
-type PromocionFormSchema = z.infer<typeof promocionSchema>;
+type PromocionFormSchema = z.infer<ReturnType<typeof createPromocionSchema>>;
 
 interface PromocionFormProps {
   promocion?: PromocionWithProducto | null;
@@ -74,7 +123,8 @@ export const PromocionForm: React.FC<PromocionFormProps> = ({
     setValue,
     formState: { errors },
   } = useForm<PromocionFormSchema>({
-    resolver: zodResolver(promocionSchema),
+    resolver: zodResolver(createPromocionSchema(productos)),
+    mode: 'onChange',
     defaultValues: {
       producto_id: promocion?.producto_id || '',
       precio_promocion_ars: promocion?.precio_promocion_ars || 0,
@@ -110,24 +160,26 @@ export const PromocionForm: React.FC<PromocionFormProps> = ({
     return productos.filter((p) => p.categoria === categoryFilter);
   }, [productos, categoryFilter]);
 
-  // Calculate discounts for all currencies
+  // Calculate discounts for all currencies (total for cantidad_minima)
   const descuentos = React.useMemo(() => {
-    if (!selectedProducto) return { ars: 0, usd: 0, brl: 0 };
+    if (!selectedProducto || !watchCantidadMinima) return { ars: 0, usd: 0, brl: 0 };
+    const cantidad = watchCantidadMinima;
     return {
-      ars: selectedProducto.precio_venta_ars - (watchPrecioPromocionArs || 0),
-      usd: selectedProducto.precio_venta_usd - (watchPrecioPromocionUsd || 0),
-      brl: selectedProducto.precio_venta_brl - (watchPrecioPromocionBrl || 0),
+      ars: (selectedProducto.precio_venta_ars * cantidad) - (watchPrecioPromocionArs || 0),
+      usd: (selectedProducto.precio_venta_usd * cantidad) - (watchPrecioPromocionUsd || 0),
+      brl: (selectedProducto.precio_venta_brl * cantidad) - (watchPrecioPromocionBrl || 0),
     };
-  }, [selectedProducto, watchPrecioPromocionArs, watchPrecioPromocionUsd, watchPrecioPromocionBrl]);
+  }, [selectedProducto, watchCantidadMinima, watchPrecioPromocionArs, watchPrecioPromocionUsd, watchPrecioPromocionBrl]);
 
   const porcentajesDescuento = React.useMemo(() => {
-    if (!selectedProducto) return { ars: 0, usd: 0, brl: 0 };
+    if (!selectedProducto || !watchCantidadMinima) return { ars: 0, usd: 0, brl: 0 };
+    const cantidad = watchCantidadMinima;
     return {
-      ars: selectedProducto.precio_venta_ars > 0 ? (descuentos.ars / selectedProducto.precio_venta_ars) * 100 : 0,
-      usd: selectedProducto.precio_venta_usd > 0 ? (descuentos.usd / selectedProducto.precio_venta_usd) * 100 : 0,
-      brl: selectedProducto.precio_venta_brl > 0 ? (descuentos.brl / selectedProducto.precio_venta_brl) * 100 : 0,
+      ars: selectedProducto.precio_venta_ars > 0 ? (descuentos.ars / (selectedProducto.precio_venta_ars * cantidad)) * 100 : 0,
+      usd: selectedProducto.precio_venta_usd > 0 ? (descuentos.usd / (selectedProducto.precio_venta_usd * cantidad)) * 100 : 0,
+      brl: selectedProducto.precio_venta_brl > 0 ? (descuentos.brl / (selectedProducto.precio_venta_brl * cantidad)) * 100 : 0,
     };
-  }, [descuentos, selectedProducto]);
+  }, [descuentos, selectedProducto, watchCantidadMinima]);
 
   // Calculate financial projections for minimum quantity
   const proyeccionMinima = React.useMemo(() => {
@@ -138,27 +190,27 @@ export const PromocionForm: React.FC<PromocionFormProps> = ({
     return {
       ars: {
         totalSinPromocion: selectedProducto.precio_venta_ars * cantidad,
-        totalConPromocion: watchPrecioPromocionArs * cantidad,
-        descuentoTotal: (selectedProducto.precio_venta_ars - watchPrecioPromocionArs) * cantidad,
+        totalConPromocion: watchPrecioPromocionArs, // Ya es el total
+        descuentoTotal: (selectedProducto.precio_venta_ars * cantidad) - watchPrecioPromocionArs,
         costoTotal: selectedProducto.precio_compra_ars * cantidad,
         gananciaSinPromocion: (selectedProducto.precio_venta_ars - selectedProducto.precio_compra_ars) * cantidad,
-        gananciaConPromocion: (watchPrecioPromocionArs - selectedProducto.precio_compra_ars) * cantidad,
+        gananciaConPromocion: watchPrecioPromocionArs - (selectedProducto.precio_compra_ars * cantidad),
       },
       usd: {
         totalSinPromocion: selectedProducto.precio_venta_usd * cantidad,
-        totalConPromocion: watchPrecioPromocionUsd * cantidad,
-        descuentoTotal: (selectedProducto.precio_venta_usd - watchPrecioPromocionUsd) * cantidad,
+        totalConPromocion: watchPrecioPromocionUsd, // Ya es el total
+        descuentoTotal: (selectedProducto.precio_venta_usd * cantidad) - watchPrecioPromocionUsd,
         costoTotal: selectedProducto.precio_compra_usd * cantidad,
         gananciaSinPromocion: (selectedProducto.precio_venta_usd - selectedProducto.precio_compra_usd) * cantidad,
-        gananciaConPromocion: (watchPrecioPromocionUsd - selectedProducto.precio_compra_usd) * cantidad,
+        gananciaConPromocion: watchPrecioPromocionUsd - (selectedProducto.precio_compra_usd * cantidad),
       },
       brl: {
         totalSinPromocion: selectedProducto.precio_venta_brl * cantidad,
-        totalConPromocion: watchPrecioPromocionBrl * cantidad,
-        descuentoTotal: (selectedProducto.precio_venta_brl - watchPrecioPromocionBrl) * cantidad,
+        totalConPromocion: watchPrecioPromocionBrl, // Ya es el total
+        descuentoTotal: (selectedProducto.precio_venta_brl * cantidad) - watchPrecioPromocionBrl,
         costoTotal: selectedProducto.precio_compra_brl * cantidad,
         gananciaSinPromocion: (selectedProducto.precio_venta_brl - selectedProducto.precio_compra_brl) * cantidad,
-        gananciaConPromocion: (watchPrecioPromocionBrl - selectedProducto.precio_compra_brl) * cantidad,
+        gananciaConPromocion: watchPrecioPromocionBrl - (selectedProducto.precio_compra_brl * cantidad),
       },
     };
   }, [selectedProducto, watchCantidadMinima, watchPrecioPromocionArs, watchPrecioPromocionUsd, watchPrecioPromocionBrl]);
@@ -172,27 +224,27 @@ export const PromocionForm: React.FC<PromocionFormProps> = ({
     return {
       ars: {
         totalSinPromocion: selectedProducto.precio_venta_ars * cantidad,
-        totalConPromocion: watchPrecioPromocionArs * cantidad,
-        descuentoTotal: (selectedProducto.precio_venta_ars - watchPrecioPromocionArs) * cantidad,
+        totalConPromocion: watchPrecioPromocionArs, // Ya es el total
+        descuentoTotal: (selectedProducto.precio_venta_ars * cantidad) - watchPrecioPromocionArs,
         costoTotal: selectedProducto.precio_compra_ars * cantidad,
         gananciaSinPromocion: (selectedProducto.precio_venta_ars - selectedProducto.precio_compra_ars) * cantidad,
-        gananciaConPromocion: (watchPrecioPromocionArs - selectedProducto.precio_compra_ars) * cantidad,
+        gananciaConPromocion: watchPrecioPromocionArs - (selectedProducto.precio_compra_ars * cantidad),
       },
       usd: {
         totalSinPromocion: selectedProducto.precio_venta_usd * cantidad,
-        totalConPromocion: watchPrecioPromocionUsd * cantidad,
-        descuentoTotal: (selectedProducto.precio_venta_usd - watchPrecioPromocionUsd) * cantidad,
+        totalConPromocion: watchPrecioPromocionUsd, // Ya es el total
+        descuentoTotal: (selectedProducto.precio_venta_usd * cantidad) - watchPrecioPromocionUsd,
         costoTotal: selectedProducto.precio_compra_usd * cantidad,
         gananciaSinPromocion: (selectedProducto.precio_venta_usd - selectedProducto.precio_compra_usd) * cantidad,
-        gananciaConPromocion: (watchPrecioPromocionUsd - selectedProducto.precio_compra_usd) * cantidad,
+        gananciaConPromocion: watchPrecioPromocionUsd - (selectedProducto.precio_compra_usd * cantidad),
       },
       brl: {
         totalSinPromocion: selectedProducto.precio_venta_brl * cantidad,
-        totalConPromocion: watchPrecioPromocionBrl * cantidad,
-        descuentoTotal: (selectedProducto.precio_venta_brl - watchPrecioPromocionBrl) * cantidad,
+        totalConPromocion: watchPrecioPromocionBrl, // Ya es el total
+        descuentoTotal: (selectedProducto.precio_venta_brl * cantidad) - watchPrecioPromocionBrl,
         costoTotal: selectedProducto.precio_compra_brl * cantidad,
         gananciaSinPromocion: (selectedProducto.precio_venta_brl - selectedProducto.precio_compra_brl) * cantidad,
-        gananciaConPromocion: (watchPrecioPromocionBrl - selectedProducto.precio_compra_brl) * cantidad,
+        gananciaConPromocion: watchPrecioPromocionBrl - (selectedProducto.precio_compra_brl * cantidad),
       },
     };
   }, [selectedProducto, watchTieneCantidadMaxima, watchCantidadMaxima, watchPrecioPromocionArs, watchPrecioPromocionUsd, watchPrecioPromocionBrl]);
@@ -638,19 +690,31 @@ export const PromocionForm: React.FC<PromocionFormProps> = ({
 
             <div className="space-y-1.5">
               {selectedProducto && selectedProducto.precio_venta_ars > 0 && (
-                <div className="flex justify-between text-base">
-                  <span className="text-muted-foreground">Precio de venta:</span>
-                  <FormattedCurrency
-                    value={selectedProducto.precio_venta_ars}
-                    currency="ARS"
-                    className="font-mono font-semibold text-primary text-xl"
-                  />
-                </div>
+                <>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Precio unitario:</span>
+                    <FormattedCurrency
+                      value={selectedProducto.precio_venta_ars}
+                      currency="ARS"
+                      className="font-mono font-medium"
+                    />
+                  </div>
+                  {watchCantidadMinima > 1 && (
+                    <div className="flex justify-between text-base border-t pt-1">
+                      <span className="text-muted-foreground">Total x {watchCantidadMinima}:</span>
+                      <FormattedCurrency
+                        value={selectedProducto.precio_venta_ars * watchCantidadMinima}
+                        currency="ARS"
+                        className="font-mono font-semibold text-primary text-xl"
+                      />
+                    </div>
+                  )}
+                </>
               )}
 
               <div className="space-y-1.5 pt-1">
                 <Label htmlFor="precio_promocion_ars" className="text-base font-medium">
-                  Precio promoción *
+                  Precio promoción {watchCantidadMinima > 1 ? `(total x ${watchCantidadMinima})` : ''} *
                 </Label>
                 <Controller
                   name="precio_promocion_ars"
@@ -663,12 +727,19 @@ export const PromocionForm: React.FC<PromocionFormProps> = ({
                       disabled={isSubmitting}
                       placeholder="0.00"
                       maxDecimals={2}
-                      className="bg-background"
+                      className={errors.precio_promocion_ars
+                        ? "bg-background border-2 border-destructive focus-visible:ring-destructive"
+                        : "bg-background"
+                      }
                     />
                   )}
                 />
                 {errors.precio_promocion_ars && (
-                  <p className="text-xs text-destructive">{errors.precio_promocion_ars.message}</p>
+                  <div className="p-2 bg-destructive/10 border border-destructive rounded-md">
+                    <p className="text-xs text-destructive font-medium">
+                      {String(errors.precio_promocion_ars.message)}
+                    </p>
+                  </div>
                 )}
               </div>
 
@@ -678,7 +749,7 @@ export const PromocionForm: React.FC<PromocionFormProps> = ({
                     profit={descuentos.ars}
                     profitPercentage={porcentajesDescuento.ars}
                     currency="ARS"
-                    label="Descuento"
+                    label={watchCantidadMinima > 1 ? "Descuento total" : "Descuento"}
                     colorScheme="discount"
                   />
                 </div>
@@ -692,19 +763,31 @@ export const PromocionForm: React.FC<PromocionFormProps> = ({
 
             <div className="space-y-1.5">
               {selectedProducto && selectedProducto.precio_venta_usd > 0 && (
-                <div className="flex justify-between text-base">
-                  <span className="text-muted-foreground">Precio de venta:</span>
-                  <FormattedCurrency
-                    value={selectedProducto.precio_venta_usd}
-                    currency="USD"
-                    className="font-mono font-semibold text-primary text-xl"
-                  />
-                </div>
+                <>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Precio unitario:</span>
+                    <FormattedCurrency
+                      value={selectedProducto.precio_venta_usd}
+                      currency="USD"
+                      className="font-mono font-medium"
+                    />
+                  </div>
+                  {watchCantidadMinima > 1 && (
+                    <div className="flex justify-between text-base border-t pt-1">
+                      <span className="text-muted-foreground">Total x {watchCantidadMinima}:</span>
+                      <FormattedCurrency
+                        value={selectedProducto.precio_venta_usd * watchCantidadMinima}
+                        currency="USD"
+                        className="font-mono font-semibold text-primary text-xl"
+                      />
+                    </div>
+                  )}
+                </>
               )}
 
               <div className="space-y-1.5 pt-1">
                 <Label htmlFor="precio_promocion_usd" className="text-base font-medium">
-                  Precio promoción *
+                  Precio promoción {watchCantidadMinima > 1 ? `(total x ${watchCantidadMinima})` : ''} *
                 </Label>
                 <Controller
                   name="precio_promocion_usd"
@@ -717,12 +800,19 @@ export const PromocionForm: React.FC<PromocionFormProps> = ({
                       disabled={isSubmitting}
                       placeholder="0.00"
                       maxDecimals={2}
-                      className="bg-background"
+                      className={errors.precio_promocion_usd
+                        ? "bg-background border-2 border-destructive focus-visible:ring-destructive"
+                        : "bg-background"
+                      }
                     />
                   )}
                 />
                 {errors.precio_promocion_usd && (
-                  <p className="text-xs text-destructive">{errors.precio_promocion_usd.message}</p>
+                  <div className="p-2 bg-destructive/10 border border-destructive rounded-md">
+                    <p className="text-xs text-destructive font-medium">
+                      {String(errors.precio_promocion_usd.message)}
+                    </p>
+                  </div>
                 )}
               </div>
 
@@ -732,7 +822,7 @@ export const PromocionForm: React.FC<PromocionFormProps> = ({
                     profit={descuentos.usd}
                     profitPercentage={porcentajesDescuento.usd}
                     currency="USD"
-                    label="Descuento"
+                    label={watchCantidadMinima > 1 ? "Descuento total" : "Descuento"}
                     colorScheme="discount"
                   />
                 </div>
@@ -746,19 +836,31 @@ export const PromocionForm: React.FC<PromocionFormProps> = ({
 
             <div className="space-y-1.5">
               {selectedProducto && selectedProducto.precio_venta_brl > 0 && (
-                <div className="flex justify-between text-base">
-                  <span className="text-muted-foreground">Precio de venta:</span>
-                  <FormattedCurrency
-                    value={selectedProducto.precio_venta_brl}
-                    currency="BRL"
-                    className="font-mono font-semibold text-primary text-xl"
-                  />
-                </div>
+                <>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Precio unitario:</span>
+                    <FormattedCurrency
+                      value={selectedProducto.precio_venta_brl}
+                      currency="BRL"
+                      className="font-mono font-medium"
+                    />
+                  </div>
+                  {watchCantidadMinima > 1 && (
+                    <div className="flex justify-between text-base border-t pt-1">
+                      <span className="text-muted-foreground">Total x {watchCantidadMinima}:</span>
+                      <FormattedCurrency
+                        value={selectedProducto.precio_venta_brl * watchCantidadMinima}
+                        currency="BRL"
+                        className="font-mono font-semibold text-primary text-xl"
+                      />
+                    </div>
+                  )}
+                </>
               )}
 
               <div className="space-y-1.5 pt-1">
                 <Label htmlFor="precio_promocion_brl" className="text-base font-medium">
-                  Precio promoción *
+                  Precio promoción {watchCantidadMinima > 1 ? `(total x ${watchCantidadMinima})` : ''} *
                 </Label>
                 <Controller
                   name="precio_promocion_brl"
@@ -771,12 +873,19 @@ export const PromocionForm: React.FC<PromocionFormProps> = ({
                       disabled={isSubmitting}
                       placeholder="0.00"
                       maxDecimals={2}
-                      className="bg-background"
+                      className={errors.precio_promocion_brl
+                        ? "bg-background border-2 border-destructive focus-visible:ring-destructive"
+                        : "bg-background"
+                      }
                     />
                   )}
                 />
                 {errors.precio_promocion_brl && (
-                  <p className="text-xs text-destructive">{errors.precio_promocion_brl.message}</p>
+                  <div className="p-2 bg-destructive/10 border border-destructive rounded-md">
+                    <p className="text-xs text-destructive font-medium">
+                      {String(errors.precio_promocion_brl.message)}
+                    </p>
+                  </div>
                 )}
               </div>
 
@@ -786,7 +895,7 @@ export const PromocionForm: React.FC<PromocionFormProps> = ({
                     profit={descuentos.brl}
                     profitPercentage={porcentajesDescuento.brl}
                     currency="BRL"
-                    label="Descuento"
+                    label={watchCantidadMinima > 1 ? "Descuento total" : "Descuento"}
                     colorScheme="discount"
                   />
                 </div>
