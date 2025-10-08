@@ -146,8 +146,27 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     await onSubmit(data, finalImageFile);
   };
 
+  // Handle Enter key to submit form
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLFormElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      // Check if the target is not a textarea or select
+      const target = e.target as HTMLElement;
+      const tagName = target.tagName.toLowerCase();
+      
+      // Only submit if Enter is pressed in an input (not textarea or button)
+      if (tagName === 'input') {
+        e.preventDefault();
+        handleSubmit(handleFormSubmit)();
+      }
+    }
+  };
+
   return (
-    <form onSubmit={handleSubmit(handleFormSubmit)} className="h-full flex flex-col">
+    <form 
+      onSubmit={handleSubmit(handleFormSubmit)} 
+      onKeyDown={handleKeyDown}
+      className="h-full flex flex-col"
+    >
       {/* Three column layout for PC */}
       <div className="grid grid-cols-3 gap-6 flex-1 min-h-0">
         {/* Column 1 - Basic Info */}

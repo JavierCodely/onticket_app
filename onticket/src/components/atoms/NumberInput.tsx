@@ -129,7 +129,16 @@ export const NumberInput = forwardRef<HTMLInputElement, NumberInputProps>(
       // Reformat to focused state (minimal formatting)
       const numValue = parseDisplayValue(displayValue);
       if (numValue !== null) {
-        setDisplayValue(formatDisplayValue(numValue, true));
+        // If value is 0, clear the input for easier typing
+        if (numValue === 0) {
+          setDisplayValue('');
+          // Select all text to make it easy to replace
+          setTimeout(() => {
+            e.target.select();
+          }, 0);
+        } else {
+          setDisplayValue(formatDisplayValue(numValue, true));
+        }
       }
       props.onFocus?.(e);
     };
@@ -150,6 +159,7 @@ export const NumberInput = forwardRef<HTMLInputElement, NumberInputProps>(
         ref={ref}
         type="text"
         inputMode="decimal"
+        autoComplete="off"
         value={displayValue}
         onChange={handleChange}
         onFocus={handleFocus}
