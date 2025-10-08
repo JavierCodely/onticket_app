@@ -3,7 +3,7 @@
  * Form for creating and editing promotions with automatic discount calculation
  */
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -17,7 +17,7 @@ import { ProfitBadge } from '@/components/atoms/ProfitBadge';
 import { FormattedCurrency } from '@/components/atoms/FormattedCurrency';
 import { useCurrency } from '@/hooks/useCurrency';
 import type { PromocionWithProducto, PromocionFormData } from '@/types/database/Promociones';
-import type { Producto } from '@/types/database/Productos';
+import type { Producto, CategoriaProducto } from '@/types/database/Productos';
 import type { CurrencyCode } from '@/types/currency';
 
 const promocionSchema = z.object({
@@ -65,6 +65,7 @@ export const PromocionForm: React.FC<PromocionFormProps> = ({
   const { defaultCurrency } = useCurrency();
   const [imageFile, setImageFile] = useState<File | null | undefined>(undefined);
   const [shouldDeleteImage, setShouldDeleteImage] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState<CategoriaProducto | 'all'>('all');
 
   const {
     control,
@@ -100,6 +101,14 @@ export const PromocionForm: React.FC<PromocionFormProps> = ({
 
   // Get selected product
   const selectedProducto = productos.find((p) => p.id === watchProductoId);
+
+  // Filter products by category
+  const filteredProductos = useMemo(() => {
+    if (categoryFilter === 'all') {
+      return productos;
+    }
+    return productos.filter((p) => p.categoria === categoryFilter);
+  }, [productos, categoryFilter]);
 
   // Calculate discounts for all currencies
   const descuentos = React.useMemo(() => {
@@ -290,6 +299,33 @@ export const PromocionForm: React.FC<PromocionFormProps> = ({
           </div>
 
           <div className="space-y-1.5">
+            <Label className="text-base font-medium">
+              Filtrar por Categoría
+            </Label>
+            <Select
+              value={categoryFilter}
+              onValueChange={(value) => setCategoryFilter(value as CategoriaProducto | 'all')}
+              disabled={isSubmitting || !!promocion}
+            >
+              <SelectTrigger className="bg-background">
+                <SelectValue placeholder="Todas las categorías" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas las categorías</SelectItem>
+                <SelectItem value="Vodka">Vodka</SelectItem>
+                <SelectItem value="Vino">Vino</SelectItem>
+                <SelectItem value="Champan">Champán</SelectItem>
+                <SelectItem value="Tequila">Tequila</SelectItem>
+                <SelectItem value="Sin Alcohol">Sin Alcohol</SelectItem>
+                <SelectItem value="Cerveza">Cerveza</SelectItem>
+                <SelectItem value="Cocteles">Cocteles</SelectItem>
+                <SelectItem value="Whisky">Whisky</SelectItem>
+                <SelectItem value="Otros">Otros</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1.5">
             <Label htmlFor="producto_id" className="text-base font-medium">
               Producto *
             </Label>
@@ -306,11 +342,17 @@ export const PromocionForm: React.FC<PromocionFormProps> = ({
                     <SelectValue placeholder="Selecciona un producto" />
                   </SelectTrigger>
                   <SelectContent>
-                    {productos.map((producto) => (
-                      <SelectItem key={producto.id} value={producto.id}>
-                        {producto.nombre} - {producto.categoria}
-                      </SelectItem>
-                    ))}
+                    {filteredProductos.length === 0 ? (
+                      <div className="p-2 text-sm text-muted-foreground text-center">
+                        No hay productos en esta categoría
+                      </div>
+                    ) : (
+                      filteredProductos.map((producto) => (
+                        <SelectItem key={producto.id} value={producto.id}>
+                          {producto.nombre} - {producto.categoria}
+                        </SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
               )}
