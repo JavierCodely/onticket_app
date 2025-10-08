@@ -14,6 +14,7 @@ export type CategoriaProducto =
   | 'Sin Alcohol'
   | 'Cerveza'
   | 'Cocteles'
+  | 'Whisky'
   | 'Otros';
 
 /**

@@ -146,6 +146,78 @@ export const PromocionesPage: React.FC = () => {
     fetchPromociones();
   }, []);
 
+  // Realtime subscription for productos
+  useEffect(() => {
+    if (!user) return;
+
+    const productosChannel = supabase
+      .channel('promociones-productos-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'productos',
+          filter: `club_id=eq.${user.club.id}`,
+        },
+        (payload) => {
+          console.log('Producto change detected in promociones page:', payload);
+
+          if (payload.eventType === 'INSERT') {
+            const newProducto = payload.new as Producto;
+            setProductos((prev) => [...prev, newProducto]);
+            setProductosMap((prev) => new Map(prev).set(newProducto.id, newProducto));
+          } else if (payload.eventType === 'UPDATE') {
+            const updatedProducto = payload.new as Producto;
+            setProductos((prev) =>
+              prev.map((p) => (p.id === updatedProducto.id ? updatedProducto : p))
+            );
+            setProductosMap((prev) => new Map(prev).set(updatedProducto.id, updatedProducto));
+          } else if (payload.eventType === 'DELETE') {
+            const deletedProducto = payload.old as Producto;
+            setProductos((prev) => prev.filter((p) => p.id !== deletedProducto.id));
+            setProductosMap((prev) => {
+              const newMap = new Map(prev);
+              newMap.delete(deletedProducto.id);
+              return newMap;
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(productosChannel);
+    };
+  }, [user]);
+
+  // Realtime subscription for promociones
+  useEffect(() => {
+    if (!user) return;
+
+    const promocionesChannel = supabase
+      .channel('promociones-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'promociones',
+          filter: `club_id=eq.${user.club.id}`,
+        },
+        (payload) => {
+          console.log('Promocion change detected:', payload);
+          // Refetch promociones to get the complete data with producto relation
+          fetchPromociones();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(promocionesChannel);
+    };
+  }, [user]);
+
   // Filter and search logic
   const filteredPromociones = useMemo(() => {
     return promociones.filter((promocion) => {

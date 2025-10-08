@@ -86,6 +86,61 @@ export const ProductosPage: React.FC = () => {
     fetchProductos();
   }, []);
 
+  // Realtime subscription for productos
+  useEffect(() => {
+    if (!user) return;
+
+    // Create realtime channel
+    const channel = supabase
+      .channel('productos-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
+          schema: 'public',
+          table: 'productos',
+          filter: `club_id=eq.${user.club.id}`, // Only listen to products from user's club
+        },
+        (payload) => {
+          console.log('Producto change detected:', payload);
+
+          if (payload.eventType === 'INSERT') {
+            // Add new product to the list
+            setProductos((prev) => [...prev, payload.new as Producto]);
+            toast.success('Nuevo producto agregado', {
+              description: `${(payload.new as Producto).nombre} ha sido creado`,
+            });
+          } else if (payload.eventType === 'UPDATE') {
+            // Update existing product
+            setProductos((prev) =>
+              prev.map((p) => (p.id === payload.new.id ? (payload.new as Producto) : p))
+            );
+            
+            // Show toast only if stock changed
+            const oldStock = (payload.old as Producto).stock;
+            const newStock = (payload.new as Producto).stock;
+            if (oldStock !== newStock) {
+              toast.info('Stock actualizado', {
+                description: `${(payload.new as Producto).nombre}: ${oldStock} → ${newStock}`,
+              });
+            }
+          } else if (payload.eventType === 'DELETE') {
+            // Remove deleted product
+            setProductos((prev) => prev.filter((p) => p.id !== payload.old.id));
+            toast.error('Producto eliminado', {
+              description: `${(payload.old as Producto).nombre} ha sido eliminado`,
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    // Cleanup subscription on unmount
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
+
   // Filter products
   useEffect(() => {
     let filtered = productos;
