@@ -85,7 +85,7 @@ export const PromocionesPage: React.FC = () => {
       const { data, error } = await supabase
         .from('personal')
         .select('*')
-        .order('nombre_completo', { ascending: true });
+        .order('nombre', { ascending: true });
 
       if (error) throw error;
 

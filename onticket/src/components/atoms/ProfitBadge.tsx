@@ -103,23 +103,23 @@ export const ProfitBadge: React.FC<ProfitBadgeProps> = (props) => {
   return (
     <div className="flex flex-col gap-1">
       {profitAmount !== undefined && currency && (
-        <div className="text-xs flex items-center justify-between">
+        <div className="text-sm flex items-center justify-between">
           <span className="text-muted-foreground">{label}:</span>
           <FormattedCurrency
             value={profitAmount}
             currency={currency}
-            className="font-mono font-semibold text-primary"
+            className="font-mono font-semibold text-primary text-lg"
           />
         </div>
       )}
       {colorScheme === 'discount' ? (
-        <Badge className={`gap-1 w-fit ${getDiscountColorClass()}`}>
+        <Badge className={`gap-1 w-fit text-base ${getDiscountColorClass()}`}>
           {showIcon && getIcon()}
           {profitMargin >= 0 ? '+' : ''}
           <FormattedNumber value={profitMargin} decimals={1} />% {label.toLowerCase()}
         </Badge>
       ) : (
-        <Badge variant={getVariant()} className="gap-1 w-fit">
+        <Badge variant={getVariant()} className="gap-1 w-fit text-base">
           {showIcon && getIcon()}
           {profitMargin >= 0 ? '+' : ''}
           <FormattedNumber value={profitMargin} decimals={1} />% {label.toLowerCase()}
