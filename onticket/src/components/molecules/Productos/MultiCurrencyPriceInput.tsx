@@ -67,7 +67,7 @@ export const MultiCurrencyPriceInput: React.FC<MultiCurrencyPriceInputProps> = (
                   className="bg-background"
                 />
                 {errors[`precio_compra_${lowerCode}`] && (
-                  <p className="text-xs text-destructive">{errors[`precio_compra_${lowerCode}`]}</p>
+                  <p className="text-xs text-destructive">{String(errors[`precio_compra_${lowerCode}`])}</p>
                 )}
               </div>
 
@@ -84,7 +84,7 @@ export const MultiCurrencyPriceInput: React.FC<MultiCurrencyPriceInputProps> = (
                   className="bg-background"
                 />
                 {errors[`precio_venta_${lowerCode}`] && (
-                  <p className="text-xs text-destructive">{errors[`precio_venta_${lowerCode}`]}</p>
+                  <p className="text-xs text-destructive">{String(errors[`precio_venta_${lowerCode}`])}</p>
                 )}
               </div>
             </div>

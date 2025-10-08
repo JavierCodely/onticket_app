@@ -46,7 +46,7 @@ const productSchema = z.object({
   ] as const),
   precio_compra: z.number().min(0, 'El precio debe ser mayor o igual a 0'),
   precio_venta: z.number().min(0, 'El precio debe ser mayor o igual a 0'),
-  // Multi-currency prices
+  // Multi-currency prices - Precios de compra pueden ser 0 (opcionales)
   precio_compra_ars: z.number().min(0, 'El precio debe ser mayor o igual a 0'),
   precio_venta_ars: z.number().min(0, 'El precio debe ser mayor o igual a 0'),
   precio_compra_usd: z.number().min(0, 'El precio debe ser mayor o igual a 0'),
@@ -56,10 +56,25 @@ const productSchema = z.object({
   stock: z.number().int().min(0, 'El stock debe ser mayor o igual a 0'),
   min_stock: z.number().int().min(0, 'El stock mínimo debe ser mayor o igual a 0'),
   max_stock: z.number().int().min(0, 'El stock máximo debe ser mayor o igual a 0'),
-}).refine((data) => data.max_stock >= data.min_stock, {
+})
+  .refine((data) => data.max_stock >= data.min_stock, {
   message: 'El stock máximo debe ser mayor o igual al stock mínimo',
   path: ['max_stock'],
-});
+  })
+  .refine(
+    (data) => {
+      // Al menos uno de los precios de venta debe ser mayor que 0
+      return (
+        data.precio_venta_ars > 0 ||
+        data.precio_venta_usd > 0 ||
+        data.precio_venta_brl > 0
+      );
+    },
+    {
+      message: 'Debes establecer al menos un precio de venta mayor que 0',
+      path: ['precio_venta_ars'], // Mostrar el error en el primer campo de precio
+    }
+  );
 
 type ProductFormData = z.infer<typeof productSchema>;
 
@@ -171,9 +186,9 @@ export const ProductForm: React.FC<ProductFormProps> = ({
       <div className="grid grid-cols-3 gap-6 flex-1 min-h-0">
         {/* Column 1 - Basic Info */}
         <div className="space-y-3">
-          <h3 className="text-sm font-semibold border-b pb-1.5">Información Básica</h3>
+          <h3 className="text-lg font-semibold border-b pb-1.5">Información Básica</h3>
           <div className="space-y-3.5">
-            <Label className="text-xs font-medium">Imagen del producto</Label>
+            <Label className="text-base font-medium">Imagen del producto</Label>
             <div className="p-3 border border-border rounded-lg bg-card">
               <ImageUploader
                 value={producto?.imagen_url}
@@ -184,7 +199,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="nombre" className="text-xs font-medium">
+            <Label htmlFor="nombre" className="text-base font-medium">
               Nombre del producto *
             </Label>
             <Input
@@ -195,17 +210,21 @@ export const ProductForm: React.FC<ProductFormProps> = ({
               className="bg-background"
             />
             {errors.nombre && (
-              <p className="text-sm text-destructive mt-1">{errors.nombre.message}</p>
+              <p className="text-sm text-destructive mt-1">{String(errors.nombre.message)}</p>
             )}
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="categoria" className="text-xs font-medium">
+            <Label htmlFor="categoria" className="text-base font-medium">
               Categoría *
             </Label>
+            <Controller
+              name="categoria"
+              control={control}
+              render={({ field }) => (
             <Select
-              value={watch('categoria')}
-              onValueChange={(value) => setValue('categoria', value as CategoriaProducto)}
+                  value={field.value}
+                  onValueChange={field.onChange}
               disabled={isSubmitting}
             >
               <SelectTrigger className="bg-background">
@@ -219,19 +238,21 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                 ))}
               </SelectContent>
             </Select>
+              )}
+            />
             {errors.categoria && (
-              <p className="text-sm text-destructive mt-1">{errors.categoria.message}</p>
+              <p className="text-sm text-destructive mt-1">{String(errors.categoria.message)}</p>
             )}
           </div>
         </div>
 
         {/* Column 2 - Multi-Currency Pricing */}
         <div className="space-y-3">
-          <h3 className="text-sm font-semibold border-b pb-1.5">Precios por Moneda</h3>
+          <h3 className="text-lg font-semibold border-b pb-1.5">Precios por Moneda</h3>
           
           {/* Currency Selection */}
           <div className="space-y-2">
-            <Label className="text-xs font-medium">Monedas activas *</Label>
+            <Label className="text-base font-medium">Monedas activas *</Label>
             <CurrencyToggle
               value={activeCurrencies}
               onChange={setActiveCurrencies}
@@ -239,8 +260,22 @@ export const ProductForm: React.FC<ProductFormProps> = ({
             />
           </div>
 
+          {/* Validation error for sale prices */}
+          {errors.precio_venta_ars && typeof errors.precio_venta_ars.message === 'string' && (
+            <div className="p-2 bg-destructive/10 border border-destructive/30 rounded-lg">
+              <p className="text-xs text-destructive font-medium">
+                {errors.precio_venta_ars.message}
+              </p>
+            </div>
+          )}
+
           {/* Multi-Currency Price Inputs */}
           <div className="space-y-2">
+            <div className="text-xs text-muted-foreground mb-2">
+              <span className="font-medium">Precio de venta:</span> Al menos uno es obligatorio. 
+              <br />
+              <span className="font-medium">Precio de compra:</span> Opcional (puede quedar en 0).
+            </div>
             <MultiCurrencyPriceInput
               activeCurrencies={activeCurrencies}
               values={{
@@ -273,10 +308,10 @@ export const ProductForm: React.FC<ProductFormProps> = ({
 
         {/* Column 3 - Inventory Management */}
         <div className="space-y-3">
-          <h3 className="text-sm font-semibold border-b pb-1.5">Gestión de Inventario</h3>
+          <h3 className="text-lg font-semibold border-b pb-1.5">Gestión de Inventario</h3>
 
           <div className="space-y-1.5">
-            <Label htmlFor="stock" className="text-xs font-medium">
+            <Label htmlFor="stock" className="text-base font-medium">
               Stock inicial *
             </Label>
             <Controller
@@ -295,7 +330,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
               )}
             />
             {errors.stock && (
-              <p className="text-sm text-destructive mt-1">{errors.stock.message}</p>
+              <p className="text-sm text-destructive mt-1">{String(errors.stock.message)}</p>
             )}
             <p className="text-xs text-muted-foreground">
               Cantidad de unidades disponibles
@@ -308,7 +343,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
             
             <div className="space-y-2">
               <div className="space-y-1.5">
-                <Label htmlFor="min_stock" className="text-xs font-medium">
+                <Label htmlFor="min_stock" className="text-base font-medium">
                   Stock mínimo *
                 </Label>
                 <Controller
@@ -327,7 +362,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                   )}
                 />
                 {errors.min_stock && (
-                  <p className="text-xs text-destructive mt-1">{errors.min_stock.message}</p>
+                  <p className="text-xs text-destructive mt-1">{String(errors.min_stock.message)}</p>
                 )}
                 <p className="text-xs text-muted-foreground">
                   Alerta cuando llegue a este nivel
@@ -335,7 +370,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="max_stock" className="text-xs font-medium">
+                <Label htmlFor="max_stock" className="text-base font-medium">
                   Stock máximo *
                 </Label>
                 <Controller
@@ -354,7 +389,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                   )}
                 />
                 {errors.max_stock && (
-                  <p className="text-xs text-destructive mt-1">{errors.max_stock.message}</p>
+                  <p className="text-xs text-destructive mt-1">{String(errors.max_stock.message)}</p>
                 )}
                 <p className="text-xs text-muted-foreground">
                   Capacidad máxima

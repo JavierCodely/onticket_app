@@ -232,40 +232,40 @@ export const PromocionForm: React.FC<PromocionFormProps> = ({
     if (!hasCurrencyValues(selectedProducto, currency)) return null;
 
     return (
-      <div className={`space-y-1 text-xs ${!isFirst ? 'border-t pt-2' : ''}`}>
-        <div className={`font-medium text-[10px] uppercase tracking-wide flex items-center gap-1.5 ${
+      <div className={`space-y-1.5 text-base ${!isFirst ? 'border-t pt-2' : ''}`}>
+        <div className={`font-medium text-sm uppercase tracking-wide flex items-center gap-1.5 ${
           isDefault ? 'text-primary' : ''
         }`}>
           {currency}
-          {isDefault && <span className="text-[9px] bg-primary/10 text-primary px-1.5 py-0.5 rounded">PREDETERMINADA</span>}
+          {isDefault && <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded">PREDETERMINADA</span>}
         </div>
         <div className="flex justify-between">
           <span className="text-muted-foreground">Sin promoción:</span>
-          <FormattedCurrency value={data.totalSinPromocion} currency={currency} className="font-mono text-xs" />
+          <FormattedCurrency value={data.totalSinPromocion} currency={currency} className="font-mono text-lg" />
         </div>
         <div className="flex justify-between">
           <span className="text-muted-foreground">Con promoción:</span>
-          <FormattedCurrency value={data.totalConPromocion} currency={currency} className="font-mono font-semibold text-xs text-green-600 dark:text-green-400" />
+          <FormattedCurrency value={data.totalConPromocion} currency={currency} className="font-mono font-semibold text-xl text-green-600 dark:text-green-400" />
         </div>
         <div className="flex justify-between border-t pt-1">
           <span className="text-muted-foreground">Descuento:</span>
-          <FormattedCurrency value={data.descuentoTotal} currency={currency} className="font-mono text-xs text-orange-600 dark:text-orange-400" />
+          <FormattedCurrency value={data.descuentoTotal} currency={currency} className="font-mono text-lg text-orange-600 dark:text-orange-400" />
         </div>
         <div className="flex justify-between">
           <span className="text-muted-foreground">% Descuento:</span>
-          <span className="font-mono text-xs text-orange-600 dark:text-orange-400">{discount.toFixed(1)}%</span>
+          <span className="font-mono text-lg text-orange-600 dark:text-orange-400">{discount.toFixed(1)}%</span>
         </div>
         <div className="flex justify-between border-t pt-1">
           <span className="text-muted-foreground">Costo total:</span>
-          <FormattedCurrency value={data.costoTotal} currency={currency} className="font-mono text-xs" />
+          <FormattedCurrency value={data.costoTotal} currency={currency} className="font-mono text-lg" />
         </div>
         <div className="flex justify-between">
           <span className="text-muted-foreground">Ganancia sin promo:</span>
-          <FormattedCurrency value={data.gananciaSinPromocion} currency={currency} className="font-mono text-xs text-green-600 dark:text-green-400" />
+          <FormattedCurrency value={data.gananciaSinPromocion} currency={currency} className="font-mono text-lg text-green-600 dark:text-green-400" />
         </div>
         <div className="flex justify-between font-semibold border-t pt-1">
           <span>Ganancia con promo:</span>
-          <FormattedCurrency value={data.gananciaConPromocion} currency={currency} className="font-mono text-xs text-green-700 dark:text-green-300" />
+          <FormattedCurrency value={data.gananciaConPromocion} currency={currency} className="font-mono text-xl text-green-700 dark:text-green-300" />
         </div>
       </div>
     );
@@ -276,10 +276,10 @@ export const PromocionForm: React.FC<PromocionFormProps> = ({
       <div className="grid grid-cols-4 gap-6 flex-1 min-h-0 overflow-y-auto">
         {/* Column 1 - Basic Info & Image */}
         <div className="space-y-3">
-          <h3 className="text-sm font-semibold border-b pb-1.5">Información Básica</h3>
+          <h3 className="text-lg font-semibold border-b pb-1.5">Información Básica</h3>
 
           <div className="space-y-3.5">
-            <Label className="text-xs font-medium">Imagen de la promoción</Label>
+            <Label className="text-base font-medium">Imagen de la promoción</Label>
             <div className="p-3 border border-border rounded-lg bg-card">
               <ImageUploader
                 value={promocion?.imagen_url}
@@ -290,7 +290,7 @@ export const PromocionForm: React.FC<PromocionFormProps> = ({
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="producto_id" className="text-xs font-medium">
+            <Label htmlFor="producto_id" className="text-base font-medium">
               Producto *
             </Label>
             <Controller
@@ -405,7 +405,7 @@ export const PromocionForm: React.FC<PromocionFormProps> = ({
 
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
-              <Label htmlFor="activo" className="text-xs font-medium">
+              <Label htmlFor="activo" className="text-base font-medium">
                 Promoción activa
               </Label>
               <Controller
@@ -429,11 +429,11 @@ export const PromocionForm: React.FC<PromocionFormProps> = ({
 
         {/* Column 2 - Quantity & Limits */}
         <div className="space-y-3">
-          <h3 className="text-sm font-semibold border-b pb-1.5">Cantidades y Límites</h3>
+          <h3 className="text-lg font-semibold border-b pb-1.5">Cantidades y Límites</h3>
 
           {/* Cantidad Mínima */}
           <div className="space-y-1.5">
-            <Label htmlFor="cantidad_minima" className="text-xs font-medium">
+            <Label htmlFor="cantidad_minima" className="text-base font-medium">
               Cantidad mínima *
             </Label>
             <Controller
@@ -462,7 +462,7 @@ export const PromocionForm: React.FC<PromocionFormProps> = ({
           {/* Cantidad Máxima */}
           <div className="p-2.5 bg-muted/50 border border-border rounded-lg space-y-2">
             <div className="flex items-center justify-between">
-              <Label className="text-xs font-semibold">¿Tiene cantidad máxima?</Label>
+              <Label className="text-sm font-semibold">¿Tiene cantidad máxima?</Label>
               <Controller
                 name="tiene_cantidad_maxima"
                 control={control}
@@ -483,7 +483,7 @@ export const PromocionForm: React.FC<PromocionFormProps> = ({
 
             {watchTieneCantidadMaxima && (
               <div className="space-y-1.5">
-                <Label htmlFor="cantidad_maxima" className="text-xs font-medium">
+                <Label htmlFor="cantidad_maxima" className="text-base font-medium">
                   Cantidad máxima
                 </Label>
                 <Controller
@@ -511,7 +511,7 @@ export const PromocionForm: React.FC<PromocionFormProps> = ({
           {/* Límite de Usos */}
           <div className="p-2.5 bg-muted/50 border border-border rounded-lg space-y-2">
             <div className="flex items-center justify-between">
-              <Label className="text-xs font-semibold">¿Tiene límite de usos?</Label>
+              <Label className="text-sm font-semibold">¿Tiene límite de usos?</Label>
               <Controller
                 name="tiene_limite_usos"
                 control={control}
@@ -532,7 +532,7 @@ export const PromocionForm: React.FC<PromocionFormProps> = ({
 
             {watchTieneLimiteUsos && (
               <div className="space-y-1.5">
-                <Label htmlFor="limite_usos" className="text-xs font-medium">
+                <Label htmlFor="limite_usos" className="text-base font-medium">
                   Límite total de usos
                 </Label>
                 <Controller
@@ -559,7 +559,7 @@ export const PromocionForm: React.FC<PromocionFormProps> = ({
 
           {/* Límite por Venta */}
           <div className="space-y-1.5">
-            <Label htmlFor="limite_usos_por_venta" className="text-xs font-medium">
+            <Label htmlFor="limite_usos_por_venta" className="text-base font-medium">
               Límite por venta *
             </Label>
             <Controller
@@ -588,26 +588,26 @@ export const PromocionForm: React.FC<PromocionFormProps> = ({
 
         {/* Column 3 - Prices */}
         <div className="space-y-3">
-          <h3 className="text-sm font-semibold border-b pb-1.5">Precios de la Promoción</h3>
+          <h3 className="text-lg font-semibold border-b pb-1.5">Precios de la Promoción</h3>
 
           {/* ARS */}
           <div className="p-2.5 bg-muted/50 border border-border rounded-lg space-y-2">
-            <Label className="text-xs font-semibold">Pesos Argentinos (ARS)</Label>
+            <Label className="text-sm font-semibold">Pesos Argentinos (ARS)</Label>
 
             <div className="space-y-1.5">
               {selectedProducto && selectedProducto.precio_venta_ars > 0 && (
-                <div className="flex justify-between text-xs">
+                <div className="flex justify-between text-base">
                   <span className="text-muted-foreground">Precio de venta:</span>
                   <FormattedCurrency
                     value={selectedProducto.precio_venta_ars}
                     currency="ARS"
-                    className="font-mono font-semibold text-primary"
+                    className="font-mono font-semibold text-primary text-xl"
                   />
                 </div>
               )}
 
               <div className="space-y-1.5 pt-1">
-                <Label htmlFor="precio_promocion_ars" className="text-xs font-medium">
+                <Label htmlFor="precio_promocion_ars" className="text-base font-medium">
                   Precio promoción *
                 </Label>
                 <Controller
@@ -646,22 +646,22 @@ export const PromocionForm: React.FC<PromocionFormProps> = ({
 
           {/* USD */}
           <div className="p-2.5 bg-muted/50 border border-border rounded-lg space-y-2">
-            <Label className="text-xs font-semibold">Dólares (USD)</Label>
+            <Label className="text-sm font-semibold">Dólares (USD)</Label>
 
             <div className="space-y-1.5">
               {selectedProducto && selectedProducto.precio_venta_usd > 0 && (
-                <div className="flex justify-between text-xs">
+                <div className="flex justify-between text-base">
                   <span className="text-muted-foreground">Precio de venta:</span>
                   <FormattedCurrency
                     value={selectedProducto.precio_venta_usd}
                     currency="USD"
-                    className="font-mono font-semibold text-primary"
+                    className="font-mono font-semibold text-primary text-xl"
                   />
                 </div>
               )}
 
               <div className="space-y-1.5 pt-1">
-                <Label htmlFor="precio_promocion_usd" className="text-xs font-medium">
+                <Label htmlFor="precio_promocion_usd" className="text-base font-medium">
                   Precio promoción *
                 </Label>
                 <Controller
@@ -700,22 +700,22 @@ export const PromocionForm: React.FC<PromocionFormProps> = ({
 
           {/* BRL */}
           <div className="p-2.5 bg-muted/50 border border-border rounded-lg space-y-2">
-            <Label className="text-xs font-semibold">Reales Brasileños (BRL)</Label>
+            <Label className="text-sm font-semibold">Reales Brasileños (BRL)</Label>
 
             <div className="space-y-1.5">
               {selectedProducto && selectedProducto.precio_venta_brl > 0 && (
-                <div className="flex justify-between text-xs">
+                <div className="flex justify-between text-base">
                   <span className="text-muted-foreground">Precio de venta:</span>
                   <FormattedCurrency
                     value={selectedProducto.precio_venta_brl}
                     currency="BRL"
-                    className="font-mono font-semibold text-primary"
+                    className="font-mono font-semibold text-primary text-xl"
                   />
                 </div>
               )}
 
               <div className="space-y-1.5 pt-1">
-                <Label htmlFor="precio_promocion_brl" className="text-xs font-medium">
+                <Label htmlFor="precio_promocion_brl" className="text-base font-medium">
                   Precio promoción *
                 </Label>
                 <Controller
@@ -755,7 +755,7 @@ export const PromocionForm: React.FC<PromocionFormProps> = ({
 
         {/* Column 4 - Financial Projections */}
         <div className="space-y-3">
-          <h3 className="text-sm font-semibold border-b pb-1.5">Proyección Financiera</h3>
+          <h3 className="text-lg font-semibold border-b pb-1.5">Proyección Financiera</h3>
 
           {!selectedProducto && (
             <p className="text-xs text-muted-foreground text-center py-4">
@@ -768,7 +768,7 @@ export const PromocionForm: React.FC<PromocionFormProps> = ({
               {/* Proyección Cantidad Mínima */}
               <div className="p-2.5 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg space-y-2">
                 <div className="flex items-center justify-between border-b border-blue-200 dark:border-blue-800 pb-1.5">
-                  <Label className="text-xs font-semibold text-blue-900 dark:text-blue-100">
+                  <Label className="text-lg font-semibold text-blue-900 dark:text-blue-100">
                     Cantidad Mínima ({watchCantidadMinima})
                   </Label>
                 </div>
@@ -792,7 +792,7 @@ export const PromocionForm: React.FC<PromocionFormProps> = ({
               {watchTieneCantidadMaxima && proyeccionMaxima && (
                 <div className="p-2.5 bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-800 rounded-lg space-y-2">
                   <div className="flex items-center justify-between border-b border-purple-200 dark:border-purple-800 pb-1.5">
-                    <Label className="text-xs font-semibold text-purple-900 dark:text-purple-100">
+                    <Label className="text-lg font-semibold text-purple-900 dark:text-purple-100">
                       Cantidad Máxima ({watchCantidadMaxima})
                     </Label>
                   </div>

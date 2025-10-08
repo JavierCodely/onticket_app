@@ -47,10 +47,10 @@ export const PromocionModal: React.FC<PromocionModalProps> = ({
       <DialogContent className="!max-w-[95vw] !w-[95vw] h-[90vh] p-0 gap-0 bg-background flex flex-col">
         <div className="px-6 py-3 border-b bg-background flex-shrink-0">
           <DialogHeader>
-            <DialogTitle className="text-lg">
+            <DialogTitle className="text-3xl">
               {promocion ? 'Editar promoción' : 'Crear nueva promoción'}
             </DialogTitle>
-            <DialogDescription className="text-xs">
+            <DialogDescription className="text-base">
               {promocion
                 ? 'Modifica los datos de la promoción y guarda los cambios'
                 : 'Completa el formulario para agregar una nueva promoción'}

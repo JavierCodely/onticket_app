@@ -18,9 +18,10 @@ import { ProfitBadge } from '@/components/atoms/ProfitBadge';
 import { FormattedCurrency } from '@/components/atoms/FormattedCurrency';
 import { X, Plus } from 'lucide-react';
 import type { ComboWithProducts } from '@/types/database/Combos';
-import type { Producto } from '@/types/database/Productos';
+import type { Producto, CategoriaProducto } from '@/types/database/Productos';
 
-const comboSchema = z.object({
+// Schema base sin validaciones de precios (las haremos dinámicamente)
+const createComboSchema = (productos: Producto[]) => z.object({
   nombre: z.string().min(1, 'El nombre es requerido'),
   productos: z.array(
     z.object({
@@ -35,9 +36,72 @@ const comboSchema = z.object({
   limite_usos_por_venta: z.number().int().min(1, 'El límite por venta debe ser al menos 1'),
   activo: z.boolean(),
   tiene_limite_usos: z.boolean(),
-});
+}).refine(
+  (data) => {
+    // Calcular precio real de venta en ARS
+    let precioRealArs = 0;
+    data.productos.forEach((item: any) => {
+      const producto = productos.find((p) => p.id === item.producto_id);
+      if (producto) {
+        precioRealArs += producto.precio_venta_ars * item.cantidad;
+      }
+    });
+    
+    // Si hay precio de venta en ARS, el combo debe ser menor
+    if (precioRealArs > 0 && data.precio_combo_ars >= precioRealArs) {
+      return false;
+    }
+    return true;
+  },
+  {
+    message: 'El precio del combo debe ser menor al precio total de venta',
+    path: ['precio_combo_ars'],
+  }
+).refine(
+  (data) => {
+    // Calcular precio real de venta en USD
+    let precioRealUsd = 0;
+    data.productos.forEach((item: any) => {
+      const producto = productos.find((p) => p.id === item.producto_id);
+      if (producto) {
+        precioRealUsd += producto.precio_venta_usd * item.cantidad;
+      }
+    });
+    
+    // Si hay precio de venta en USD, el combo debe ser menor
+    if (precioRealUsd > 0 && data.precio_combo_usd >= precioRealUsd) {
+      return false;
+    }
+    return true;
+  },
+  {
+    message: 'El precio del combo debe ser menor al precio total de venta',
+    path: ['precio_combo_usd'],
+  }
+).refine(
+  (data) => {
+    // Calcular precio real de venta en BRL
+    let precioRealBrl = 0;
+    data.productos.forEach((item: any) => {
+      const producto = productos.find((p) => p.id === item.producto_id);
+      if (producto) {
+        precioRealBrl += producto.precio_venta_brl * item.cantidad;
+      }
+    });
+    
+    // Si hay precio de venta en BRL, el combo debe ser menor
+    if (precioRealBrl > 0 && data.precio_combo_brl >= precioRealBrl) {
+      return false;
+    }
+    return true;
+  },
+  {
+    message: 'El precio del combo debe ser menor al precio total de venta',
+    path: ['precio_combo_brl'],
+  }
+);
 
-type ComboFormData = z.infer<typeof comboSchema>;
+type ComboFormData = z.infer<ReturnType<typeof createComboSchema>>;
 
 interface ComboFormProps {
   combo?: ComboWithProducts | null;
@@ -56,6 +120,14 @@ export const ComboForm: React.FC<ComboFormProps> = ({
 }) => {
   const [imageFile, setImageFile] = useState<File | null | undefined>(undefined);
   const [shouldDeleteImage, setShouldDeleteImage] = useState(false);
+  // Estado para filtros de categoría por índice de producto
+  const [categoryFilters, setCategoryFilters] = useState<Record<number, CategoriaProducto | 'todas'>>({});
+  // Estados para errores de validación de precios en tiempo real
+  const [priceErrors, setPriceErrors] = useState<{
+    ars?: string;
+    usd?: string;
+    brl?: string;
+  }>({});
 
   const {
     register,
@@ -65,7 +137,8 @@ export const ComboForm: React.FC<ComboFormProps> = ({
     setValue,
     formState: { errors },
   } = useForm<ComboFormData>({
-    resolver: zodResolver(comboSchema),
+    resolver: zodResolver(createComboSchema(productos)),
+    mode: 'onChange', // Validar en tiempo real mientras el usuario escribe
     defaultValues: {
       nombre: combo?.nombre || '',
       productos: combo?.combo_productos?.map((cp) => ({
@@ -165,6 +238,28 @@ export const ComboForm: React.FC<ComboFormProps> = ({
     brl: preciosCompra.brl > 0 ? ((ganancias.brl / preciosCompra.brl) * 100) : 0,
   }), [ganancias, preciosCompra]);
 
+  // Validar precios en tiempo real
+  React.useEffect(() => {
+    const newErrors: { ars?: string; usd?: string; brl?: string } = {};
+
+    // Validar ARS
+    if (preciosVenta.ars > 0 && watchPrecioComboArs >= preciosVenta.ars) {
+      newErrors.ars = `El precio del combo ($${watchPrecioComboArs.toFixed(2)}) debe ser menor al precio total de venta ($${preciosVenta.ars.toFixed(2)})`;
+    }
+
+    // Validar USD
+    if (preciosVenta.usd > 0 && watchPrecioComboUsd >= preciosVenta.usd) {
+      newErrors.usd = `El precio del combo (US$${watchPrecioComboUsd.toFixed(2)}) debe ser menor al precio total de venta (US$${preciosVenta.usd.toFixed(2)})`;
+    }
+
+    // Validar BRL
+    if (preciosVenta.brl > 0 && watchPrecioComBrl >= preciosVenta.brl) {
+      newErrors.brl = `El precio del combo (R$${watchPrecioComBrl.toFixed(2)}) debe ser menor al precio total de venta (R$${preciosVenta.brl.toFixed(2)})`;
+    }
+
+    setPriceErrors(newErrors);
+  }, [watchPrecioComboArs, watchPrecioComboUsd, watchPrecioComBrl, preciosVenta]);
+
   const handleImageChange = (file: File | null) => {
     setImageFile(file);
     if (file === null && combo?.imagen_url) {
@@ -188,10 +283,10 @@ export const ComboForm: React.FC<ComboFormProps> = ({
       <div className="grid grid-cols-3 gap-6 flex-1 min-h-0 overflow-y-auto">
         {/* Column 1 - Basic Info & Image */}
         <div className="space-y-3">
-          <h3 className="text-sm font-semibold border-b pb-1.5">Información Básica</h3>
+          <h3 className="text-lg font-semibold border-b pb-1.5">Información Básica</h3>
 
           <div className="space-y-3.5">
-            <Label className="text-xs font-medium">Imagen del combo</Label>
+            <Label className="text-base font-medium">Imagen del combo</Label>
             <div className="p-3 border border-border rounded-lg bg-card">
               <ImageUploader
                 value={combo?.imagen_url}
@@ -202,7 +297,7 @@ export const ComboForm: React.FC<ComboFormProps> = ({
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="nombre" className="text-xs font-medium">
+            <Label htmlFor="nombre" className="text-base font-medium">
               Nombre del combo *
             </Label>
             <Input
@@ -213,13 +308,13 @@ export const ComboForm: React.FC<ComboFormProps> = ({
               className="bg-background"
             />
             {errors.nombre && (
-              <p className="text-sm text-destructive mt-1">{errors.nombre.message}</p>
+              <p className="text-sm text-destructive mt-1">{String(errors.nombre.message)}</p>
             )}
           </div>
 
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
-              <Label htmlFor="activo" className="text-xs font-medium">
+              <Label htmlFor="activo" className="text-base font-medium">
                 Combo activo
               </Label>
               <Controller
@@ -243,7 +338,7 @@ export const ComboForm: React.FC<ComboFormProps> = ({
           {/* Límites */}
           <div className="p-2.5 bg-muted/50 border border-border rounded-lg space-y-2">
             <div className="flex items-center justify-between">
-              <Label className="text-xs font-semibold">¿Tiene límite de usos?</Label>
+              <Label className="text-sm font-semibold">¿Tiene límite de usos?</Label>
               <Controller
                 name="tiene_limite_usos"
                 control={control}
@@ -264,7 +359,7 @@ export const ComboForm: React.FC<ComboFormProps> = ({
 
             {watchTieneLimiteUsos && (
               <div className="space-y-1.5">
-                <Label htmlFor="limite_usos" className="text-xs font-medium">
+                <Label htmlFor="limite_usos" className="text-base font-medium">
                   Límite total de usos
                 </Label>
                 <Controller
@@ -283,13 +378,13 @@ export const ComboForm: React.FC<ComboFormProps> = ({
                   )}
                 />
                 {errors.limite_usos && (
-                  <p className="text-xs text-destructive mt-1">{errors.limite_usos.message}</p>
+                  <p className="text-xs text-destructive mt-1">{String(errors.limite_usos.message)}</p>
                 )}
               </div>
             )}
 
             <div className="space-y-1.5">
-              <Label htmlFor="limite_usos_por_venta" className="text-xs font-medium">
+              <Label htmlFor="limite_usos_por_venta" className="text-base font-medium">
                 Límite por venta *
               </Label>
               <Controller
@@ -308,7 +403,7 @@ export const ComboForm: React.FC<ComboFormProps> = ({
                 )}
               />
               {errors.limite_usos_por_venta && (
-                <p className="text-xs text-destructive mt-1">{errors.limite_usos_por_venta.message}</p>
+                <p className="text-xs text-destructive mt-1">{String(errors.limite_usos_por_venta.message)}</p>
               )}
               <p className="text-xs text-muted-foreground">
                 Máximo de combos por transacción
@@ -320,7 +415,7 @@ export const ComboForm: React.FC<ComboFormProps> = ({
         {/* Column 2 - Products */}
         <div className="space-y-3">
           <div className="flex items-center justify-between border-b pb-1.5">
-            <h3 className="text-sm font-semibold">Productos del Combo</h3>
+            <h3 className="text-lg font-semibold">Productos del Combo</h3>
             <Button
               type="button"
               size="sm"
@@ -344,20 +439,45 @@ export const ComboForm: React.FC<ComboFormProps> = ({
                 (p) => p.id === watchProductos[index]?.producto_id
               );
 
+              // Obtener el filtro de categoría para este índice
+              const categoryFilter = categoryFilters[index] || 'todas';
+
+              // Filtrar productos disponibles por categoría
+              const filteredProductos = productos.filter((p) => {
+                // El producto ya seleccionado siempre debe aparecer
+                if (p.id === watchProductos[index]?.producto_id) return true;
+                
+                // El producto no debe estar ya seleccionado en otro campo
+                if (watchProductos.some((wp) => wp.producto_id === p.id)) return false;
+                
+                // Filtrar por categoría si se seleccionó una específica
+                if (categoryFilter !== 'todas' && p.categoria !== categoryFilter) return false;
+                
+                return true;
+              });
+
               return (
                 <div
                   key={field.id}
                   className="p-3 border border-border rounded-lg bg-card space-y-2"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-muted-foreground">
+                    <span className="text-sm font-semibold text-muted-foreground">
                       Producto {index + 1}
                     </span>
                     <Button
                       type="button"
                       size="icon"
                       variant="ghost"
-                      onClick={() => remove(index)}
+                      onClick={() => {
+                        remove(index);
+                        // Limpiar el filtro de categoría para este índice
+                        setCategoryFilters(prev => {
+                          const newFilters = { ...prev };
+                          delete newFilters[index];
+                          return newFilters;
+                        });
+                      }}
                       disabled={isSubmitting}
                       className="h-6 w-6"
                     >
@@ -366,7 +486,37 @@ export const ComboForm: React.FC<ComboFormProps> = ({
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label className="text-xs font-medium">Producto</Label>
+                    <Label className="text-base font-medium">Categoría</Label>
+                    <Select
+                      value={categoryFilter}
+                      onValueChange={(value) => {
+                        setCategoryFilters(prev => ({
+                          ...prev,
+                          [index]: value as CategoriaProducto | 'todas'
+                        }));
+                      }}
+                      disabled={isSubmitting}
+                    >
+                      <SelectTrigger className="bg-background">
+                        <SelectValue placeholder="Todas las categorías" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="todas">Todas las categorías</SelectItem>
+                        <SelectItem value="Vodka">Vodka</SelectItem>
+                        <SelectItem value="Whisky">Whisky</SelectItem>
+                        <SelectItem value="Tequila">Tequila</SelectItem>
+                        <SelectItem value="Vino">Vino</SelectItem>
+                        <SelectItem value="Champan">Champán</SelectItem>
+                        <SelectItem value="Cerveza">Cerveza</SelectItem>
+                        <SelectItem value="Cocteles">Cocteles</SelectItem>
+                        <SelectItem value="Sin Alcohol">Sin Alcohol</SelectItem>
+                        <SelectItem value="Otros">Otros</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-base font-medium">Producto</Label>
                     <Controller
                       name={`productos.${index}.producto_id`}
                       control={control}
@@ -380,29 +530,30 @@ export const ComboForm: React.FC<ComboFormProps> = ({
                             <SelectValue placeholder="Selecciona un producto" />
                           </SelectTrigger>
                           <SelectContent>
-                            {productos
-                              .filter((p) =>
-                                p.id === field.value ||
-                                !watchProductos.some((wp) => wp.producto_id === p.id)
-                              )
-                              .map((producto) => (
+                            {filteredProductos.length === 0 ? (
+                              <div className="text-xs text-muted-foreground p-2 text-center">
+                                No hay productos disponibles en esta categoría
+                              </div>
+                            ) : (
+                              filteredProductos.map((producto) => (
                                 <SelectItem key={producto.id} value={producto.id}>
-                                  {producto.nombre}
+                                  {producto.nombre} ({producto.categoria})
                                 </SelectItem>
-                              ))}
+                              ))
+                            )}
                           </SelectContent>
                         </Select>
                       )}
                     />
                     {errors.productos?.[index]?.producto_id && (
                       <p className="text-xs text-destructive">
-                        {errors.productos[index]?.producto_id?.message}
+                        {String(errors.productos[index]?.producto_id?.message)}
                       </p>
                     )}
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label className="text-xs font-medium">Cantidad</Label>
+                    <Label className="text-base font-medium">Cantidad</Label>
                     <Controller
                       name={`productos.${index}.cantidad`}
                       control={control}
@@ -419,16 +570,16 @@ export const ComboForm: React.FC<ComboFormProps> = ({
                     />
                     {errors.productos?.[index]?.cantidad && (
                       <p className="text-xs text-destructive">
-                        {errors.productos[index]?.cantidad?.message}
+                        {String(errors.productos[index]?.cantidad?.message)}
                       </p>
                     )}
                   </div>
 
                   {selectedProducto && (
-                    <div className="text-xs text-muted-foreground space-y-0.5 pt-1 border-t">
+                    <div className="text-sm text-muted-foreground space-y-0.5 pt-1 border-t">
                       <div className="flex justify-between">
                         <span>Stock disponible:</span>
-                        <span className="font-mono font-semibold">
+                        <span className="font-mono font-semibold text-base">
                           {selectedProducto.stock}
                         </span>
                       </div>
@@ -441,7 +592,7 @@ export const ComboForm: React.FC<ComboFormProps> = ({
                             <FormattedCurrency
                               value={selectedProducto.precio_compra_ars}
                               currency="ARS"
-                              className="font-mono text-xs"
+                              className="font-mono text-sm"
                             />
                           </div>
                           <div className="flex justify-between">
@@ -449,7 +600,7 @@ export const ComboForm: React.FC<ComboFormProps> = ({
                             <FormattedCurrency
                               value={selectedProducto.precio_venta_ars}
                               currency="ARS"
-                              className="font-mono font-semibold text-xs"
+                              className="font-mono font-semibold text-base"
                             />
                           </div>
                         </>
@@ -463,7 +614,7 @@ export const ComboForm: React.FC<ComboFormProps> = ({
                             <FormattedCurrency
                               value={selectedProducto.precio_compra_usd}
                               currency="USD"
-                              className="font-mono text-xs"
+                              className="font-mono text-sm"
                             />
                           </div>
                           <div className="flex justify-between">
@@ -471,7 +622,7 @@ export const ComboForm: React.FC<ComboFormProps> = ({
                             <FormattedCurrency
                               value={selectedProducto.precio_venta_usd}
                               currency="USD"
-                              className="font-mono font-semibold text-xs"
+                              className="font-mono font-semibold text-base"
                             />
                           </div>
                         </>
@@ -485,7 +636,7 @@ export const ComboForm: React.FC<ComboFormProps> = ({
                             <FormattedCurrency
                               value={selectedProducto.precio_compra_brl}
                               currency="BRL"
-                              className="font-mono text-xs"
+                              className="font-mono text-sm"
                             />
                           </div>
                           <div className="flex justify-between">
@@ -493,7 +644,7 @@ export const ComboForm: React.FC<ComboFormProps> = ({
                             <FormattedCurrency
                               value={selectedProducto.precio_venta_brl}
                               currency="BRL"
-                              className="font-mono font-semibold text-xs"
+                              className="font-mono font-semibold text-base"
                             />
                           </div>
                         </>
@@ -508,33 +659,37 @@ export const ComboForm: React.FC<ComboFormProps> = ({
 
         {/* Column 3 - Prices */}
         <div className="space-y-3">
-          <h3 className="text-sm font-semibold border-b pb-1.5">Precios del Combo</h3>
+          <h3 className="text-lg font-semibold border-b pb-1.5">Precios del Combo</h3>
+          
+          <div className="text-xs text-muted-foreground bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-2">
+            <span className="font-medium text-blue-700 dark:text-blue-400">💡 Importante:</span> El precio del combo debe ser <span className="font-semibold">menor</span> al precio total de venta para ofrecer un descuento.
+          </div>
 
           {/* ARS */}
           <div className="p-2.5 bg-muted/50 border border-border rounded-lg space-y-2">
-            <Label className="text-xs font-semibold">Pesos Argentinos (ARS)</Label>
+            <Label className="text-sm font-semibold">Pesos Argentinos (ARS)</Label>
 
             <div className="space-y-1.5">
-              <div className="flex justify-between text-xs">
+              <div className="flex justify-between text-base">
                 <span className="text-muted-foreground">Precio total compra:</span>
                 <FormattedCurrency
                   value={preciosCompra.ars}
                   currency="ARS"
-                  className="font-mono"
+                  className="font-mono text-lg"
                 />
               </div>
 
-              <div className="flex justify-between text-xs">
+              <div className="flex justify-between text-base">
                 <span className="text-muted-foreground">Precio total venta:</span>
                 <FormattedCurrency
                   value={preciosVenta.ars}
                   currency="ARS"
-                  className="font-mono font-semibold text-primary"
+                  className="font-mono font-semibold text-primary text-xl"
                 />
               </div>
 
               <div className="space-y-1.5 pt-1">
-                <Label htmlFor="precio_combo_ars" className="text-xs font-medium">
+                <Label htmlFor="precio_combo_ars" className="text-base font-medium">
                   Precio combo *
                 </Label>
                 <Controller
@@ -548,12 +703,19 @@ export const ComboForm: React.FC<ComboFormProps> = ({
                       disabled={isSubmitting}
                       placeholder="0.00"
                       maxDecimals={2}
-                      className="bg-background"
+                      className={(errors.precio_combo_ars || priceErrors.ars)
+                        ? "bg-background border-2 border-destructive focus-visible:ring-destructive" 
+                        : "bg-background"
+                      }
                     />
                   )}
                 />
-                {errors.precio_combo_ars && (
-                  <p className="text-xs text-destructive">{errors.precio_combo_ars.message}</p>
+                {(errors.precio_combo_ars || priceErrors.ars) && (
+                  <div className="p-2 bg-destructive/10 border border-destructive rounded-md">
+                    <p className="text-xs text-destructive font-medium">
+                      {priceErrors.ars || String(errors.precio_combo_ars?.message)}
+                    </p>
+                  </div>
                 )}
               </div>
 
@@ -577,29 +739,29 @@ export const ComboForm: React.FC<ComboFormProps> = ({
 
           {/* USD */}
           <div className="p-2.5 bg-muted/50 border border-border rounded-lg space-y-2">
-            <Label className="text-xs font-semibold">Dólares (USD)</Label>
+            <Label className="text-sm font-semibold">Dólares (USD)</Label>
 
             <div className="space-y-1.5">
-              <div className="flex justify-between text-xs">
+              <div className="flex justify-between text-base">
                 <span className="text-muted-foreground">Precio total compra:</span>
                 <FormattedCurrency
                   value={preciosCompra.usd}
                   currency="USD"
-                  className="font-mono"
+                  className="font-mono text-lg"
                 />
               </div>
 
-              <div className="flex justify-between text-xs">
+              <div className="flex justify-between text-base">
                 <span className="text-muted-foreground">Precio total venta:</span>
                 <FormattedCurrency
                   value={preciosVenta.usd}
                   currency="USD"
-                  className="font-mono font-semibold text-primary"
+                  className="font-mono font-semibold text-primary text-xl"
                 />
               </div>
 
               <div className="space-y-1.5 pt-1">
-                <Label htmlFor="precio_combo_usd" className="text-xs font-medium">
+                <Label htmlFor="precio_combo_usd" className="text-base font-medium">
                   Precio combo *
                 </Label>
                 <Controller
@@ -613,12 +775,19 @@ export const ComboForm: React.FC<ComboFormProps> = ({
                       disabled={isSubmitting}
                       placeholder="0.00"
                       maxDecimals={2}
-                      className="bg-background"
+                      className={(errors.precio_combo_usd || priceErrors.usd)
+                        ? "bg-background border-2 border-destructive focus-visible:ring-destructive" 
+                        : "bg-background"
+                      }
                     />
                   )}
                 />
-                {errors.precio_combo_usd && (
-                  <p className="text-xs text-destructive">{errors.precio_combo_usd.message}</p>
+                {(errors.precio_combo_usd || priceErrors.usd) && (
+                  <div className="p-2 bg-destructive/10 border border-destructive rounded-md">
+                    <p className="text-xs text-destructive font-medium">
+                      {priceErrors.usd || String(errors.precio_combo_usd?.message)}
+                    </p>
+                  </div>
                 )}
               </div>
 
@@ -642,29 +811,29 @@ export const ComboForm: React.FC<ComboFormProps> = ({
 
           {/* BRL */}
           <div className="p-2.5 bg-muted/50 border border-border rounded-lg space-y-2">
-            <Label className="text-xs font-semibold">Reales Brasileños (BRL)</Label>
+            <Label className="text-sm font-semibold">Reales Brasileños (BRL)</Label>
 
             <div className="space-y-1.5">
-              <div className="flex justify-between text-xs">
+              <div className="flex justify-between text-base">
                 <span className="text-muted-foreground">Precio total compra:</span>
                 <FormattedCurrency
                   value={preciosCompra.brl}
                   currency="BRL"
-                  className="font-mono"
+                  className="font-mono text-lg"
                 />
               </div>
 
-              <div className="flex justify-between text-xs">
+              <div className="flex justify-between text-base">
                 <span className="text-muted-foreground">Precio total venta:</span>
                 <FormattedCurrency
                   value={preciosVenta.brl}
                   currency="BRL"
-                  className="font-mono font-semibold text-primary"
+                  className="font-mono font-semibold text-primary text-xl"
                 />
               </div>
 
               <div className="space-y-1.5 pt-1">
-                <Label htmlFor="precio_combo_brl" className="text-xs font-medium">
+                <Label htmlFor="precio_combo_brl" className="text-base font-medium">
                   Precio combo *
                 </Label>
                 <Controller
@@ -678,12 +847,19 @@ export const ComboForm: React.FC<ComboFormProps> = ({
                       disabled={isSubmitting}
                       placeholder="0.00"
                       maxDecimals={2}
-                      className="bg-background"
+                      className={(errors.precio_combo_brl || priceErrors.brl)
+                        ? "bg-background border-2 border-destructive focus-visible:ring-destructive" 
+                        : "bg-background"
+                      }
                     />
                   )}
                 />
-                {errors.precio_combo_brl && (
-                  <p className="text-xs text-destructive">{errors.precio_combo_brl.message}</p>
+                {(errors.precio_combo_brl || priceErrors.brl) && (
+                  <div className="p-2 bg-destructive/10 border border-destructive rounded-md">
+                    <p className="text-xs text-destructive font-medium">
+                      {priceErrors.brl || String(errors.precio_combo_brl?.message)}
+                    </p>
+                  </div>
                 )}
               </div>
 

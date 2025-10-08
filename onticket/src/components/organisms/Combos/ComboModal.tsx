@@ -47,10 +47,10 @@ export const ComboModal: React.FC<ComboModalProps> = ({
       <DialogContent className="!max-w-[95vw] !w-[95vw] h-[90vh] p-0 gap-0 bg-background flex flex-col">
         <div className="px-6 py-3 border-b bg-background flex-shrink-0">
           <DialogHeader>
-            <DialogTitle className="text-lg">
+            <DialogTitle className="text-3xl">
               {combo ? 'Editar combo' : 'Crear nuevo combo'}
             </DialogTitle>
-            <DialogDescription className="text-xs">
+            <DialogDescription className="text-base">
               {combo
                 ? 'Modifica los datos del combo y guarda los cambios'
                 : 'Completa el formulario para agregar un nuevo combo al inventario'}

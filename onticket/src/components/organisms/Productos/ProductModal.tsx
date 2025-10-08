@@ -44,10 +44,10 @@ export const ProductModal: React.FC<ProductModalProps> = ({
       <DialogContent className="!max-w-[95vw] !w-[95vw] h-[90vh] p-0 gap-0 bg-background flex flex-col">
         <div className="px-6 py-3 border-b bg-background flex-shrink-0">
           <DialogHeader>
-            <DialogTitle className="text-lg">
+            <DialogTitle className="text-3xl">
               {producto ? 'Editar producto' : 'Crear nuevo producto'}
             </DialogTitle>
-            <DialogDescription className="text-xs">
+            <DialogDescription className="text-base">
               {producto
                 ? 'Modifica los datos del producto y guarda los cambios'
                 : 'Completa el formulario para agregar un nuevo producto al inventario'}
