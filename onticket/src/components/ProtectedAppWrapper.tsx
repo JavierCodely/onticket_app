@@ -11,6 +11,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { RoleBasedRedirect } from '@/components/RoleBasedRedirect';
+import { Toaster } from '@/components/ui/sonner';
 
 // Loading fallback component
 const LoadingFallback = () => (
@@ -36,6 +37,7 @@ const BartenderDashboard = lazy(() => import('@/pages/bartender/dashboard/Dashbo
 export const ProtectedAppWrapper: React.FC = () => {
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+      <Toaster />
       <Routes>
           {/* Root - Redirect based on role */}
           <Route
