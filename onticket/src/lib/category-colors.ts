@@ -51,6 +51,11 @@ export function getCategoryColors(categoria: CategoriaProducto): CategoryColors 
       text: 'text-pink-700 dark:text-pink-400',
       border: 'border-pink-200 dark:border-pink-900',
     },
+    Whisky: {
+      bg: 'bg-amber-50 dark:bg-amber-950/30',
+      text: 'text-amber-800 dark:text-amber-300',
+      border: 'border-amber-300 dark:border-amber-800',
+    },
     Otros: {
       bg: 'bg-gray-50 dark:bg-gray-950/30',
       text: 'text-gray-700 dark:text-gray-400',

@@ -19,6 +19,7 @@ const CATEGORIAS: CategoriaProducto[] = [
   'Sin Alcohol',
   'Cerveza',
   'Cocteles',
+  'Whisky',
   'Otros',
 ];
 

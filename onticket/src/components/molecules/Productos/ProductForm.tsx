@@ -27,6 +27,7 @@ const CATEGORIAS: CategoriaProducto[] = [
   'Sin Alcohol',
   'Cerveza',
   'Cocteles',
+  'Whisky',
   'Otros',
 ];
 
@@ -40,6 +41,7 @@ const productSchema = z.object({
     'Sin Alcohol',
     'Cerveza',
     'Cocteles',
+    'Whisky',
     'Otros',
   ] as const),
   precio_compra: z.number().min(0, 'El precio debe ser mayor o igual a 0'),

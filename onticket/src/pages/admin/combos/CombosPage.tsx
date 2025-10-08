@@ -108,6 +108,78 @@ export const CombosPage: React.FC = () => {
     fetchCombos();
   }, []);
 
+  // Realtime subscription for productos
+  useEffect(() => {
+    if (!user) return;
+
+    const productosChannel = supabase
+      .channel('combos-productos-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'productos',
+          filter: `club_id=eq.${user.club.id}`,
+        },
+        (payload) => {
+          console.log('Producto change detected in combos page:', payload);
+
+          if (payload.eventType === 'INSERT') {
+            const newProducto = payload.new as Producto;
+            setProductos((prev) => [...prev, newProducto]);
+            setProductosMap((prev) => new Map(prev).set(newProducto.id, newProducto));
+          } else if (payload.eventType === 'UPDATE') {
+            const updatedProducto = payload.new as Producto;
+            setProductos((prev) =>
+              prev.map((p) => (p.id === updatedProducto.id ? updatedProducto : p))
+            );
+            setProductosMap((prev) => new Map(prev).set(updatedProducto.id, updatedProducto));
+          } else if (payload.eventType === 'DELETE') {
+            const deletedProducto = payload.old as Producto;
+            setProductos((prev) => prev.filter((p) => p.id !== deletedProducto.id));
+            setProductosMap((prev) => {
+              const newMap = new Map(prev);
+              newMap.delete(deletedProducto.id);
+              return newMap;
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(productosChannel);
+    };
+  }, [user]);
+
+  // Realtime subscription for combos
+  useEffect(() => {
+    if (!user) return;
+
+    const combosChannel = supabase
+      .channel('combos-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'combos',
+          filter: `club_id=eq.${user.club.id}`,
+        },
+        (payload) => {
+          console.log('Combo change detected:', payload);
+          // Refetch combos to get the complete data with relations
+          fetchCombos();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(combosChannel);
+    };
+  }, [user]);
+
   // Create combo
   const handleCreateCombo = async (data: ComboFormData, imageFile: File | null | undefined) => {
     if (!user) return;
