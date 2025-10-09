@@ -14,6 +14,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ColorThemeProvider } from '@/components/ColorThemeProvider';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 // Minimal loading fallback for login
 const MinimalLoadingFallback = () => (
@@ -30,33 +31,35 @@ const ProtectedAppWrapper = lazy(() => import('@/components/ProtectedAppWrapper'
 
 function App() {
   return (
-    <BrowserRouter>
-      <AuthProvider>
-        <ColorThemeProvider>
-          <Routes>
-            {/* Public route - Login ONLY, no extra components */}
-            <Route 
-              path="/login" 
-              element={
-                <Suspense fallback={<MinimalLoadingFallback />}>
-                  <LoginPage />
-                </Suspense>
-              } 
-            />
+    <ErrorBoundary>
+      <BrowserRouter>
+        <AuthProvider>
+          <ColorThemeProvider>
+            <Routes>
+              {/* Public route - Login ONLY, no extra components */}
+              <Route 
+                path="/login" 
+                element={
+                  <Suspense fallback={<MinimalLoadingFallback />}>
+                    <LoginPage />
+                  </Suspense>
+                } 
+              />
 
-            {/* All protected routes wrapped in ProtectedAppWrapper */}
-            <Route
-              path="/*"
-              element={
-                <Suspense fallback={<MinimalLoadingFallback />}>
-                  <ProtectedAppWrapper />
-                </Suspense>
-              }
-            />
-          </Routes>
-        </ColorThemeProvider>
-      </AuthProvider>
-    </BrowserRouter>
+              {/* All protected routes wrapped in ProtectedAppWrapper */}
+              <Route
+                path="/*"
+                element={
+                  <Suspense fallback={<MinimalLoadingFallback />}>
+                    <ProtectedAppWrapper />
+                  </Suspense>
+                }
+              />
+            </Routes>
+          </ColorThemeProvider>
+        </AuthProvider>
+      </BrowserRouter>
+    </ErrorBoundary>
   );
 }
 

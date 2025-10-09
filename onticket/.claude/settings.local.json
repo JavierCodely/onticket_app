@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/Agus/Desktop/onticket/supabase/migrations/updates/**)",
+      "Read(//c/Users/Agus/Desktop/onticket/supabase/migrations/**)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

@@ -281,18 +281,24 @@ export const PromocionesPage: React.FC = () => {
         imagen_url = url;
       }
 
+      // Calculate real prices as TOTAL for cantidad_minima
+      // (data.precio_promocion_* already comes as total from the form)
+      const precio_real_ars_total = producto.precio_venta_ars * data.cantidad_minima;
+      const precio_real_usd_total = producto.precio_venta_usd * data.cantidad_minima;
+      const precio_real_brl_total = producto.precio_venta_brl * data.cantidad_minima;
+
       // Use the currency with the highest value for legacy fields
       let precio_real = 0;
       let precio_promocion = 0;
 
       if (producto.precio_venta_ars > 0) {
-        precio_real = producto.precio_venta_ars;
+        precio_real = precio_real_ars_total;
         precio_promocion = data.precio_promocion_ars;
       } else if (producto.precio_venta_usd > 0) {
-        precio_real = producto.precio_venta_usd;
+        precio_real = precio_real_usd_total;
         precio_promocion = data.precio_promocion_usd;
       } else if (producto.precio_venta_brl > 0) {
-        precio_real = producto.precio_venta_brl;
+        precio_real = precio_real_brl_total;
         precio_promocion = data.precio_promocion_brl;
       }
 
@@ -302,11 +308,11 @@ export const PromocionesPage: React.FC = () => {
         creado_por: user.personal.id,
         precio_real,
         precio_promocion,
-        precio_real_ars: producto.precio_venta_ars,
+        precio_real_ars: precio_real_ars_total,
         precio_promocion_ars: data.precio_promocion_ars,
-        precio_real_usd: producto.precio_venta_usd,
+        precio_real_usd: precio_real_usd_total,
         precio_promocion_usd: data.precio_promocion_usd,
-        precio_real_brl: producto.precio_venta_brl,
+        precio_real_brl: precio_real_brl_total,
         precio_promocion_brl: data.precio_promocion_brl,
         cantidad_minima: data.cantidad_minima,
         cantidad_maxima: data.tiene_cantidad_maxima ? data.cantidad_maxima : null,
@@ -363,21 +369,42 @@ export const PromocionesPage: React.FC = () => {
         imagen_url = null;
       }
 
+      // Get producto to calculate real prices
+      const producto = productos.find((p) => p.id === selectedPromocion.producto_id);
+      if (!producto) {
+        toast.error('Producto no encontrado');
+        return;
+      }
+
+      // Calculate real prices as TOTAL for cantidad_minima
+      // (data.precio_promocion_* already comes as total from the form)
+      const precio_real_ars_total = producto.precio_venta_ars * data.cantidad_minima;
+      const precio_real_usd_total = producto.precio_venta_usd * data.cantidad_minima;
+      const precio_real_brl_total = producto.precio_venta_brl * data.cantidad_minima;
+
       // Use the currency with the highest value for legacy fields
+      let precio_real = 0;
       let precio_promocion = 0;
 
-      if (data.precio_promocion_ars > 0) {
+      if (producto.precio_venta_ars > 0) {
+        precio_real = precio_real_ars_total;
         precio_promocion = data.precio_promocion_ars;
-      } else if (data.precio_promocion_usd > 0) {
+      } else if (producto.precio_venta_usd > 0) {
+        precio_real = precio_real_usd_total;
         precio_promocion = data.precio_promocion_usd;
-      } else if (data.precio_promocion_brl > 0) {
+      } else if (producto.precio_venta_brl > 0) {
+        precio_real = precio_real_brl_total;
         precio_promocion = data.precio_promocion_brl;
       }
 
       const updatePayload: PromocionUpdate = {
+        precio_real,
         precio_promocion,
+        precio_real_ars: precio_real_ars_total,
         precio_promocion_ars: data.precio_promocion_ars,
+        precio_real_usd: precio_real_usd_total,
         precio_promocion_usd: data.precio_promocion_usd,
+        precio_real_brl: precio_real_brl_total,
         precio_promocion_brl: data.precio_promocion_brl,
         cantidad_minima: data.cantidad_minima,
         cantidad_maxima: data.tiene_cantidad_maxima ? data.cantidad_maxima : null,

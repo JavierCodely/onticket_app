@@ -1,0 +1,9 @@
+lee los todos los .md y .sql de productos promociones combos, sales y updates, respetando la arquitectura con shadcn crea la seccion de ventas con realtime.
+debe tener arriba un total de ventas efectivo, total transferencia, total productos vendidos y filtro por fecha, categoria, tipo(efectivo,transferencia, etc) empleado.
+en el modal de crear ventas primero deberia elegir un empleado (bartender o el suyo propio) para que habilite todo. debera tener un filtro por categorias y 2 botones para mostrar combos y promociones, 
+debera aparecer los productos con imagen y precio (si el usuario elegido es admin deberan aparecer y cargar los precios de compra) de lo contrario todo los precios de venta.
+si hago click en un producto me debera aparecer para sumar cantidad de ese producto, si pongo en 0 debera eliminarse del carrito si llego a la cantidad de alguna promocion deberia activarse la promocion.
+si quiero sumar mas producto tendre que hacer click nuevamente en el producto y empezar desde 1 pero con los precios normales, siempre respetando la limitacion de venta de promociones o de combos.
+en el lado izquierdo tendra laa opcion para elegir empleado debajo como se realiza efectivo, transferecia etc, y tipo de moneda. si cambio el tipo de moneda los precios deberan cambiarse al tipo de moneda selecionada
+si un producto no tiene precio de dicha moneda la opcion de cambiar moneda debera estar inactiva.
+debajo el total y confirmar compra   

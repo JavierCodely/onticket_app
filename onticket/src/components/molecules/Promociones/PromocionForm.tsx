@@ -49,15 +49,14 @@ const createPromocionSchema = (productos: Producto[]) => z.object({
     const producto = productos.find((p) => p.id === data.producto_id);
     if (!producto) return true;
     
-    // Si el precio de venta ARS es > 0, el precio de promoción ARS debe ser menor al total
+    // El precio unitario de promoción debe ser menor al precio de venta unitario
     if (producto.precio_venta_ars > 0 && data.precio_promocion_ars > 0) {
-      const precioVentaTotal = producto.precio_venta_ars * data.cantidad_minima;
-      return data.precio_promocion_ars < precioVentaTotal;
+      return data.precio_promocion_ars < producto.precio_venta_ars;
     }
     return true;
   },
   {
-    message: 'El precio de promoción debe ser menor al precio de venta total',
+    message: 'El precio unitario de promoción debe ser menor al precio de venta',
     path: ['precio_promocion_ars'],
   }
 ).refine(
@@ -65,15 +64,14 @@ const createPromocionSchema = (productos: Producto[]) => z.object({
     const producto = productos.find((p) => p.id === data.producto_id);
     if (!producto) return true;
     
-    // Si el precio de venta USD es > 0, el precio de promoción USD debe ser menor al total
+    // El precio unitario de promoción debe ser menor al precio de venta unitario
     if (producto.precio_venta_usd > 0 && data.precio_promocion_usd > 0) {
-      const precioVentaTotal = producto.precio_venta_usd * data.cantidad_minima;
-      return data.precio_promocion_usd < precioVentaTotal;
+      return data.precio_promocion_usd < producto.precio_venta_usd;
     }
     return true;
   },
   {
-    message: 'El precio de promoción debe ser menor al precio de venta total',
+    message: 'El precio unitario de promoción debe ser menor al precio de venta',
     path: ['precio_promocion_usd'],
   }
 ).refine(
@@ -81,15 +79,14 @@ const createPromocionSchema = (productos: Producto[]) => z.object({
     const producto = productos.find((p) => p.id === data.producto_id);
     if (!producto) return true;
     
-    // Si el precio de venta BRL es > 0, el precio de promoción BRL debe ser menor al total
+    // El precio unitario de promoción debe ser menor al precio de venta unitario
     if (producto.precio_venta_brl > 0 && data.precio_promocion_brl > 0) {
-      const precioVentaTotal = producto.precio_venta_brl * data.cantidad_minima;
-      return data.precio_promocion_brl < precioVentaTotal;
+      return data.precio_promocion_brl < producto.precio_venta_brl;
     }
     return true;
   },
   {
-    message: 'El precio de promoción debe ser menor al precio de venta total',
+    message: 'El precio unitario de promoción debe ser menor al precio de venta',
     path: ['precio_promocion_brl'],
   }
 );
@@ -127,9 +124,16 @@ export const PromocionForm: React.FC<PromocionFormProps> = ({
     mode: 'onChange',
     defaultValues: {
       producto_id: promocion?.producto_id || '',
-      precio_promocion_ars: promocion?.precio_promocion_ars || 0,
-      precio_promocion_usd: promocion?.precio_promocion_usd || 0,
-      precio_promocion_brl: promocion?.precio_promocion_brl || 0,
+      // Convert from total to unit price for display
+      precio_promocion_ars: promocion 
+        ? promocion.precio_promocion_ars / (promocion.cantidad_minima || 1)
+        : 0,
+      precio_promocion_usd: promocion 
+        ? promocion.precio_promocion_usd / (promocion.cantidad_minima || 1)
+        : 0,
+      precio_promocion_brl: promocion 
+        ? promocion.precio_promocion_brl / (promocion.cantidad_minima || 1)
+        : 0,
       cantidad_minima: promocion?.cantidad_minima || 1,
       cantidad_maxima: promocion?.cantidad_maxima,
       limite_usos: promocion?.limite_usos,
@@ -160,14 +164,14 @@ export const PromocionForm: React.FC<PromocionFormProps> = ({
     return productos.filter((p) => p.categoria === categoryFilter);
   }, [productos, categoryFilter]);
 
-  // Calculate discounts for all currencies (total for cantidad_minima)
+  // Calculate discounts for all currencies (now using unit prices)
   const descuentos = React.useMemo(() => {
     if (!selectedProducto || !watchCantidadMinima) return { ars: 0, usd: 0, brl: 0 };
     const cantidad = watchCantidadMinima;
     return {
-      ars: (selectedProducto.precio_venta_ars * cantidad) - (watchPrecioPromocionArs || 0),
-      usd: (selectedProducto.precio_venta_usd * cantidad) - (watchPrecioPromocionUsd || 0),
-      brl: (selectedProducto.precio_venta_brl * cantidad) - (watchPrecioPromocionBrl || 0),
+      ars: (selectedProducto.precio_venta_ars * cantidad) - ((watchPrecioPromocionArs || 0) * cantidad),
+      usd: (selectedProducto.precio_venta_usd * cantidad) - ((watchPrecioPromocionUsd || 0) * cantidad),
+      brl: (selectedProducto.precio_venta_brl * cantidad) - ((watchPrecioPromocionBrl || 0) * cantidad),
     };
   }, [selectedProducto, watchCantidadMinima, watchPrecioPromocionArs, watchPrecioPromocionUsd, watchPrecioPromocionBrl]);
 
@@ -190,27 +194,27 @@ export const PromocionForm: React.FC<PromocionFormProps> = ({
     return {
       ars: {
         totalSinPromocion: selectedProducto.precio_venta_ars * cantidad,
-        totalConPromocion: watchPrecioPromocionArs, // Ya es el total
-        descuentoTotal: (selectedProducto.precio_venta_ars * cantidad) - watchPrecioPromocionArs,
+        totalConPromocion: watchPrecioPromocionArs * cantidad, // Unit price * quantity
+        descuentoTotal: (selectedProducto.precio_venta_ars * cantidad) - (watchPrecioPromocionArs * cantidad),
         costoTotal: selectedProducto.precio_compra_ars * cantidad,
         gananciaSinPromocion: (selectedProducto.precio_venta_ars - selectedProducto.precio_compra_ars) * cantidad,
-        gananciaConPromocion: watchPrecioPromocionArs - (selectedProducto.precio_compra_ars * cantidad),
+        gananciaConPromocion: (watchPrecioPromocionArs * cantidad) - (selectedProducto.precio_compra_ars * cantidad),
       },
       usd: {
         totalSinPromocion: selectedProducto.precio_venta_usd * cantidad,
-        totalConPromocion: watchPrecioPromocionUsd, // Ya es el total
-        descuentoTotal: (selectedProducto.precio_venta_usd * cantidad) - watchPrecioPromocionUsd,
+        totalConPromocion: watchPrecioPromocionUsd * cantidad, // Unit price * quantity
+        descuentoTotal: (selectedProducto.precio_venta_usd * cantidad) - (watchPrecioPromocionUsd * cantidad),
         costoTotal: selectedProducto.precio_compra_usd * cantidad,
         gananciaSinPromocion: (selectedProducto.precio_venta_usd - selectedProducto.precio_compra_usd) * cantidad,
-        gananciaConPromocion: watchPrecioPromocionUsd - (selectedProducto.precio_compra_usd * cantidad),
+        gananciaConPromocion: (watchPrecioPromocionUsd * cantidad) - (selectedProducto.precio_compra_usd * cantidad),
       },
       brl: {
         totalSinPromocion: selectedProducto.precio_venta_brl * cantidad,
-        totalConPromocion: watchPrecioPromocionBrl, // Ya es el total
-        descuentoTotal: (selectedProducto.precio_venta_brl * cantidad) - watchPrecioPromocionBrl,
+        totalConPromocion: watchPrecioPromocionBrl * cantidad, // Unit price * quantity
+        descuentoTotal: (selectedProducto.precio_venta_brl * cantidad) - (watchPrecioPromocionBrl * cantidad),
         costoTotal: selectedProducto.precio_compra_brl * cantidad,
         gananciaSinPromocion: (selectedProducto.precio_venta_brl - selectedProducto.precio_compra_brl) * cantidad,
-        gananciaConPromocion: watchPrecioPromocionBrl - (selectedProducto.precio_compra_brl * cantidad),
+        gananciaConPromocion: (watchPrecioPromocionBrl * cantidad) - (selectedProducto.precio_compra_brl * cantidad),
       },
     };
   }, [selectedProducto, watchCantidadMinima, watchPrecioPromocionArs, watchPrecioPromocionUsd, watchPrecioPromocionBrl]);
@@ -224,27 +228,27 @@ export const PromocionForm: React.FC<PromocionFormProps> = ({
     return {
       ars: {
         totalSinPromocion: selectedProducto.precio_venta_ars * cantidad,
-        totalConPromocion: watchPrecioPromocionArs, // Ya es el total
-        descuentoTotal: (selectedProducto.precio_venta_ars * cantidad) - watchPrecioPromocionArs,
+        totalConPromocion: watchPrecioPromocionArs * cantidad, // Unit price * quantity
+        descuentoTotal: (selectedProducto.precio_venta_ars * cantidad) - (watchPrecioPromocionArs * cantidad),
         costoTotal: selectedProducto.precio_compra_ars * cantidad,
         gananciaSinPromocion: (selectedProducto.precio_venta_ars - selectedProducto.precio_compra_ars) * cantidad,
-        gananciaConPromocion: watchPrecioPromocionArs - (selectedProducto.precio_compra_ars * cantidad),
+        gananciaConPromocion: (watchPrecioPromocionArs * cantidad) - (selectedProducto.precio_compra_ars * cantidad),
       },
       usd: {
         totalSinPromocion: selectedProducto.precio_venta_usd * cantidad,
-        totalConPromocion: watchPrecioPromocionUsd, // Ya es el total
-        descuentoTotal: (selectedProducto.precio_venta_usd * cantidad) - watchPrecioPromocionUsd,
+        totalConPromocion: watchPrecioPromocionUsd * cantidad, // Unit price * quantity
+        descuentoTotal: (selectedProducto.precio_venta_usd * cantidad) - (watchPrecioPromocionUsd * cantidad),
         costoTotal: selectedProducto.precio_compra_usd * cantidad,
         gananciaSinPromocion: (selectedProducto.precio_venta_usd - selectedProducto.precio_compra_usd) * cantidad,
-        gananciaConPromocion: watchPrecioPromocionUsd - (selectedProducto.precio_compra_usd * cantidad),
+        gananciaConPromocion: (watchPrecioPromocionUsd * cantidad) - (selectedProducto.precio_compra_usd * cantidad),
       },
       brl: {
         totalSinPromocion: selectedProducto.precio_venta_brl * cantidad,
-        totalConPromocion: watchPrecioPromocionBrl, // Ya es el total
-        descuentoTotal: (selectedProducto.precio_venta_brl * cantidad) - watchPrecioPromocionBrl,
+        totalConPromocion: watchPrecioPromocionBrl * cantidad, // Unit price * quantity
+        descuentoTotal: (selectedProducto.precio_venta_brl * cantidad) - (watchPrecioPromocionBrl * cantidad),
         costoTotal: selectedProducto.precio_compra_brl * cantidad,
         gananciaSinPromocion: (selectedProducto.precio_venta_brl - selectedProducto.precio_compra_brl) * cantidad,
-        gananciaConPromocion: watchPrecioPromocionBrl - (selectedProducto.precio_compra_brl * cantidad),
+        gananciaConPromocion: (watchPrecioPromocionBrl * cantidad) - (selectedProducto.precio_compra_brl * cantidad),
       },
     };
   }, [selectedProducto, watchTieneCantidadMaxima, watchCantidadMaxima, watchPrecioPromocionArs, watchPrecioPromocionUsd, watchPrecioPromocionBrl]);
@@ -260,7 +264,16 @@ export const PromocionForm: React.FC<PromocionFormProps> = ({
 
   const handleFormSubmit = async (data: PromocionFormSchema) => {
     const finalImageFile = shouldDeleteImage ? null : imageFile;
-    await onSubmit(data, finalImageFile);
+    
+    // Convert unit prices to total prices before saving
+    const dataWithTotalPrices = {
+      ...data,
+      precio_promocion_ars: data.precio_promocion_ars * data.cantidad_minima,
+      precio_promocion_usd: data.precio_promocion_usd * data.cantidad_minima,
+      precio_promocion_brl: data.precio_promocion_brl * data.cantidad_minima,
+    };
+    
+    await onSubmit(dataWithTotalPrices, finalImageFile);
   };
 
   // Helper to check if currency has values
@@ -714,7 +727,7 @@ export const PromocionForm: React.FC<PromocionFormProps> = ({
 
               <div className="space-y-1.5 pt-1">
                 <Label htmlFor="precio_promocion_ars" className="text-base font-medium">
-                  Precio promoción {watchCantidadMinima > 1 ? `(total x ${watchCantidadMinima})` : ''} *
+                  Precio unitario promocional *
                 </Label>
                 <Controller
                   name="precio_promocion_ars"
@@ -787,7 +800,7 @@ export const PromocionForm: React.FC<PromocionFormProps> = ({
 
               <div className="space-y-1.5 pt-1">
                 <Label htmlFor="precio_promocion_usd" className="text-base font-medium">
-                  Precio promoción {watchCantidadMinima > 1 ? `(total x ${watchCantidadMinima})` : ''} *
+                  Precio unitario promocional *
                 </Label>
                 <Controller
                   name="precio_promocion_usd"
@@ -860,7 +873,7 @@ export const PromocionForm: React.FC<PromocionFormProps> = ({
 
               <div className="space-y-1.5 pt-1">
                 <Label htmlFor="precio_promocion_brl" className="text-base font-medium">
-                  Precio promoción {watchCantidadMinima > 1 ? `(total x ${watchCantidadMinima})` : ''} *
+                  Precio unitario promocional *
                 </Label>
                 <Controller
                   name="precio_promocion_brl"

@@ -3,3 +3,4 @@
  */
 
 export { InicioCierreFilters } from './InicioCierreFilters';
+export { SalesStatsCards } from './SalesStatsCards';

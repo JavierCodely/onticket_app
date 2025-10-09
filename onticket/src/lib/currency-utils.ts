@@ -169,3 +169,21 @@ export function getActiveCurrencies(producto: Producto): CurrencyCode[] {
   return currencies;
 }
 
+/**
+ * Format currency value with proper symbol and locale
+ */
+export function formatCurrency(value: number, currency: CurrencyCode = 'ARS'): string {
+  const currencySymbols: Record<CurrencyCode, string> = {
+    ARS: '$',
+    USD: 'US$',
+    BRL: 'R$',
+  };
+
+  const formatted = new Intl.NumberFormat('es-AR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
+
+  return `${currencySymbols[currency]} ${formatted}`;
+}
+

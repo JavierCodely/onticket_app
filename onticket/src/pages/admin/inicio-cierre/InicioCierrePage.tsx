@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Play, Download, RefreshCw, CheckCheck } from 'lucide-react';
 import { exportInicioCierreToCSV } from '@/lib/export';
-import { InicioCierreFilters } from '@/components/molecules/InicioCierre';
+import { InicioCierreFilters, SalesStatsCards } from '@/components/molecules/InicioCierre';
 import { InicioCierreTable } from '@/components/organisms/InicioCierre';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
@@ -29,11 +29,21 @@ import {
 import type { InicioCierre } from '@/types/database/InicioCierre';
 import type { Producto } from '@/types/database/Productos';
 
+interface ProductStat {
+  nombre_producto: string;
+  categoria: string;
+  cantidad_vendida: number;
+  stock_inicio: number;
+  stock_actual: number;
+}
+
 export const InicioCierrePage: React.FC = () => {
   const { user } = useAuth();
   const [registros, setRegistros] = useState<InicioCierre[]>([]);
   const [filteredRegistros, setFilteredRegistros] = useState<InicioCierre[]>([]);
   const [loading, setLoading] = useState(true);
+  const [productosActuales, setProductosActuales] = useState<Producto[]>([]);
+  const [statsLoading, setStatsLoading] = useState(false);
 
   // Filters - Initialize with today's date
   const today = new Date().toISOString().split('T')[0];
@@ -71,6 +81,78 @@ export const InicioCierrePage: React.FC = () => {
   useEffect(() => {
     fetchRegistros();
   }, []);
+
+  // Fetch productos actuales when there are open registros
+  const fetchProductosActuales = async () => {
+    try {
+      setStatsLoading(true);
+      const { data, error } = await supabase
+        .from('productos')
+        .select('*');
+
+      if (error) throw error;
+
+      setProductosActuales(data || []);
+    } catch (error) {
+      console.error('Error fetching productos:', error);
+    } finally {
+      setStatsLoading(false);
+    }
+  };
+
+  // Fetch productos when there are open records
+  useEffect(() => {
+    const registrosAbiertosCount = registros.filter((r) => !r.fecha_cierre).length;
+    if (registrosAbiertosCount > 0) {
+      fetchProductosActuales();
+    }
+  }, [registros]);
+
+  // Calculate sales statistics based on FILTERED registros
+  const calculateSalesStats = (): { topSelling: ProductStat[]; leastSelling: ProductStat[] } => {
+    if (filteredRegistros.length === 0) {
+      return { topSelling: [], leastSelling: [] };
+    }
+
+    // Create a map of current stock for open records
+    const stockMap = new Map(productosActuales.map((p) => [p.id, p.stock]));
+
+    // Calculate sales for each product
+    const salesData: ProductStat[] = filteredRegistros
+      .map((registro) => {
+        let stockFinal: number;
+
+        // Use stock_cierre if the record is closed, otherwise use current stock
+        if (registro.fecha_cierre && registro.stock_cierre !== null) {
+          stockFinal = registro.stock_cierre;
+        } else {
+          // For open records, use current stock from productosActuales
+          stockFinal = stockMap.get(registro.producto_id) || registro.stock_inicio;
+        }
+
+        const cantidadVendida = Math.max(registro.stock_inicio - stockFinal, 0);
+
+        return {
+          nombre_producto: registro.nombre_producto,
+          categoria: registro.categoria,
+          cantidad_vendida: cantidadVendida,
+          stock_inicio: registro.stock_inicio,
+          stock_actual: stockFinal,
+        };
+      })
+      .filter((stat) => stat.cantidad_vendida > 0); // Only include products with sales
+
+    // Sort by cantidad_vendida
+    const sortedByMost = [...salesData].sort((a, b) => b.cantidad_vendida - a.cantidad_vendida);
+    const sortedByLeast = [...salesData].sort((a, b) => a.cantidad_vendida - b.cantidad_vendida);
+
+    return {
+      topSelling: sortedByMost.slice(0, 5), // Top 5 most sold
+      leastSelling: sortedByLeast.slice(0, 5), // Top 5 least sold (but still sold)
+    };
+  };
+
+  const { topSelling, leastSelling } = calculateSalesStats();
 
   // Filter registros
   useEffect(() => {
@@ -346,14 +428,17 @@ export const InicioCierrePage: React.FC = () => {
               <Download className="h-4 w-4 mr-2" />
               Exportar CSV
             </Button>
-            <Button onClick={() => setInicioDialogOpen(true)}>
+            <Button
+              onClick={() => setInicioDialogOpen(true)}
+              disabled={registrosAbiertos > 0}
+            >
               <Play className="h-4 w-4 mr-2" />
               Registrar Inicio
             </Button>
           </div>
         </div>
 
-        {/* Stats */}
+        {/* Active Records Alert */}
         {registrosAbiertos > 0 && (
           <Card className="border-blue-200 dark:border-blue-900 bg-blue-50 dark:bg-blue-950/30">
             <CardHeader className="pb-3">
@@ -365,6 +450,21 @@ export const InicioCierrePage: React.FC = () => {
               </CardDescription>
             </CardHeader>
           </Card>
+        )}
+
+        {/* Sales Statistics - Show when there are filtered records */}
+        {filteredRegistros.length > 0 && (
+          statsLoading ? (
+            <div className="grid md:grid-cols-2 gap-6">
+              <Skeleton className="h-64 w-full" />
+              <Skeleton className="h-64 w-full" />
+            </div>
+          ) : (
+            <SalesStatsCards
+              topSelling={topSelling}
+              leastSelling={leastSelling}
+            />
+          )
         )}
 
         {/* Filters */}
