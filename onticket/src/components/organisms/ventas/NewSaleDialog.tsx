@@ -177,34 +177,6 @@ export function NewSaleDialog({
     (emp) => emp.rol === 'Bartender' || emp.rol === 'Admin'
   );
 
-  // Filter products
-  const filteredProductos = productos.filter((p) => {
-    if (selectedCategory !== 'all' && p.categoria !== selectedCategory) return false;
-    if (searchQuery && !p.nombre.toLowerCase().includes(searchQuery.toLowerCase())) return false;
-    return true;
-  });
-
-  // Filter promotions
-  const filteredPromociones = promociones.filter((promo) => {
-    if (!promo.activo) return false;
-    // Exclude promotions that reached their global usage limit
-    if (promo.limite_usos !== null && promo.cantidad_usos >= promo.limite_usos) return false;
-    const producto = productos.find((p) => p.id === promo.producto_id);
-    if (!producto) return false;
-    if (selectedCategory !== 'all' && producto.categoria !== selectedCategory) return false;
-    if (searchQuery && !producto.nombre.toLowerCase().includes(searchQuery.toLowerCase())) return false;
-    return true;
-  });
-
-  // Filter combos
-  const filteredCombos = combos.filter((combo) => {
-    if (!combo.activo) return false;
-    // Exclude combos that reached their global usage limit
-    if (combo.limite_usos !== null && combo.cantidad_usos >= combo.limite_usos) return false;
-    if (searchQuery && !combo.nombre.toLowerCase().includes(searchQuery.toLowerCase())) return false;
-    return true;
-  });
-
   // Check if currency can be changed (based on selected employee's role)
   const canChangeCurrency = productos.every(
     (p) =>
@@ -295,6 +267,58 @@ export function NewSaleDialog({
         return combo.precio_combo_ars;
     }
   };
+
+  // Filter products (with sorting by price)
+  const filteredProductos = useMemo(() => {
+    return productos
+      .filter((p) => {
+        if (selectedCategory !== 'all' && p.categoria !== selectedCategory) return false;
+        if (searchQuery && !p.nombre.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+        return true;
+      })
+      .sort((a, b) => {
+        const precioA = getProductPrice(a);
+        const precioB = getProductPrice(b);
+        return precioB - precioA; // Mayor a menor
+      });
+  }, [productos, selectedCategory, searchQuery, moneda, isSelectedEmpleadoAdmin]);
+
+  // Filter promotions (with sorting by price)
+  const filteredPromociones = useMemo(() => {
+    return promociones
+      .filter((promo) => {
+        if (!promo.activo) return false;
+        // Exclude promotions that reached their global usage limit
+        if (promo.limite_usos !== null && promo.cantidad_usos >= promo.limite_usos) return false;
+        const producto = productos.find((p) => p.id === promo.producto_id);
+        if (!producto) return false;
+        if (selectedCategory !== 'all' && producto.categoria !== selectedCategory) return false;
+        if (searchQuery && !producto.nombre.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+        return true;
+      })
+      .sort((a, b) => {
+        const precioA = getPromotionPrice(a).promo;
+        const precioB = getPromotionPrice(b).promo;
+        return precioB - precioA; // Mayor a menor
+      });
+  }, [promociones, productos, selectedCategory, searchQuery, moneda]);
+
+  // Filter combos (with sorting by price)
+  const filteredCombos = useMemo(() => {
+    return combos
+      .filter((combo) => {
+        if (!combo.activo) return false;
+        // Exclude combos that reached their global usage limit
+        if (combo.limite_usos !== null && combo.cantidad_usos >= combo.limite_usos) return false;
+        if (searchQuery && !combo.nombre.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+        return true;
+      })
+      .sort((a, b) => {
+        const precioA = getComboPrice(a);
+        const precioB = getComboPrice(b);
+        return precioB - precioA; // Mayor a menor
+      });
+  }, [combos, searchQuery, moneda]);
 
   // Get current stock (realtime or fallback)
   const getCurrentStock = (productoId: string): number => {
@@ -877,6 +901,17 @@ export function NewSaleDialog({
     }
   };
 
+  const getItemImage = (item: CartItem): string | null | undefined => {
+    switch (item.type) {
+      case 'product':
+        return item.producto.imagen_url;
+      case 'promotion':
+        return item.promocion.imagen_url || item.producto.imagen_url;
+      case 'combo':
+        return item.combo.imagen_url;
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="!max-w-[95vw] !w-[95vw] !h-[95vh] !min-h-[95vh] p-0 flex flex-col sm:!max-w-[95vw] md:!max-w-[95vw] lg:!max-w-[95vw]">
@@ -893,9 +928,9 @@ export function NewSaleDialog({
             {/* Employee, Payment Method and Currency - ALL IN ONE ROW */}
             <div className="grid grid-cols-3 gap-3 shrink-0">
               {/* Employee Selector */}
-              <div className="space-y-1">
-                <Label htmlFor="empleado-select" className="flex items-center gap-1 text-xs">
-                  <UserCircle className="h-3 w-3" />
+              <div className="space-y-2">
+                <Label htmlFor="empleado-select" className="flex items-center gap-2 text-base font-semibold">
+                  <UserCircle className="h-5 w-5" />
                   Empleado
                 </Label>
                 <select
@@ -903,7 +938,7 @@ export function NewSaleDialog({
                   value={empleadoId || ''}
                   onChange={(e) => setEmpleado(e.target.value || null)}
                 disabled={isSubmitting}
-                  className="flex h-8 w-full items-center justify-between rounded-md border border-input bg-background px-2 py-1 text-xs ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex h-11 w-full items-center justify-between rounded-md border-2 border-input bg-background px-3 py-2 text-base font-medium ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-all hover:border-primary/50"
                 >
                   <option value="">Seleccionar</option>
                   {currentUser && (
@@ -922,9 +957,9 @@ export function NewSaleDialog({
               </div>
 
               {/* Payment Method */}
-              <div className="space-y-1">
-                <Label htmlFor="metodo-pago-select" className="flex items-center gap-1 text-xs">
-                  <CreditCard className="h-3 w-3" />
+              <div className="space-y-2">
+                <Label htmlFor="metodo-pago-select" className="flex items-center gap-2 text-base font-semibold">
+                  <CreditCard className="h-5 w-5" />
                   Método de pago
                 </Label>
                 <select
@@ -932,7 +967,7 @@ export function NewSaleDialog({
                   value={metodoPago}
                   onChange={(e) => changeMetodoPago(e.target.value as MetodoPago)}
                 disabled={isSubmitting || !empleadoId}
-                  className="flex h-8 w-full items-center justify-between rounded-md border border-input bg-background px-2 py-1 text-xs ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex h-11 w-full items-center justify-between rounded-md border-2 border-input bg-background px-3 py-2 text-base font-medium ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-all hover:border-primary/50"
                 >
                   <option value="efectivo">💵 Efectivo</option>
                   <option value="transferencia">🏦 Transferencia</option>
@@ -942,9 +977,9 @@ export function NewSaleDialog({
               </div>
 
               {/* Currency */}
-              <div className="space-y-1">
-                <Label htmlFor="moneda-select" className="flex items-center gap-1 text-xs">
-                  <Coins className="h-3 w-3" />
+              <div className="space-y-2">
+                <Label htmlFor="moneda-select" className="flex items-center gap-2 text-base font-semibold">
+                  <Coins className="h-5 w-5" />
                   Moneda
                 </Label>
                 <select
@@ -952,7 +987,7 @@ export function NewSaleDialog({
                   value={moneda}
                   onChange={(e) => changeCurrency(e.target.value as CurrencyCode)}
                   disabled={isSubmitting || !empleadoId || !canChangeCurrency}
-                  className="flex h-8 w-full items-center justify-between rounded-md border border-input bg-background px-2 py-1 text-xs ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex h-11 w-full items-center justify-between rounded-md border-2 border-input bg-background px-3 py-2 text-base font-medium ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-all hover:border-primary/50"
                 >
                   {Object.values(CURRENCIES).map((currency) => (
                     <option key={currency.code} value={currency.code}>
@@ -970,17 +1005,17 @@ export function NewSaleDialog({
                   {/* View Mode Selector and Search in one row */}
                   <div className="flex items-center gap-3 shrink-0">
                     <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)}>
-                      <TabsList className="h-8">
-                        <TabsTrigger value="products" className="text-xs px-3 h-7">
-                          <Package className="h-3 w-3 mr-1" />
+                      <TabsList className="h-12 p-1">
+                        <TabsTrigger value="products" className="text-base font-semibold px-5 h-10 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                          <Package className="h-5 w-5 mr-2" />
                           Productos
                         </TabsTrigger>
-                        <TabsTrigger value="promotions" className="text-xs px-3 h-7">
-                          <Tag className="h-3 w-3 mr-1" />
-                          Promos
+                        <TabsTrigger value="promotions" className="text-base font-semibold px-5 h-10 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                          <Tag className="h-5 w-5 mr-2" />
+                          Promociones
                         </TabsTrigger>
-                        <TabsTrigger value="combos" className="text-xs px-3 h-7">
-                          <TrendingUp className="h-3 w-3 mr-1" />
+                        <TabsTrigger value="combos" className="text-base font-semibold px-5 h-10 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                          <TrendingUp className="h-5 w-5 mr-2" />
                           Combos
                         </TabsTrigger>
                       </TabsList>
@@ -988,12 +1023,12 @@ export function NewSaleDialog({
 
                     {/* Search */}
                     <div className="relative flex-1">
-                      <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                       <Input
                         placeholder="Buscar..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-7 h-8 text-xs"
+                        className="pl-10 h-12 text-base font-medium border-2"
                       />
                     </div>
                   </div>
@@ -1004,7 +1039,7 @@ export function NewSaleDialog({
                       <Button
                         variant={selectedCategory === 'all' ? 'default' : 'outline'}
                         size="sm"
-                        className="h-7 text-xs px-2"
+                        className="h-9 text-base font-semibold px-3"
                         onClick={() => setSelectedCategory('all')}
                       >
                         Todas
@@ -1014,7 +1049,7 @@ export function NewSaleDialog({
                           key={category}
                           variant={selectedCategory === category ? 'default' : 'outline'}
                           size="sm"
-                          className="h-7 text-xs px-2"
+                          className="h-9 text-base font-semibold px-3"
                           onClick={() => setSelectedCategory(category)}
                         >
                           {category}
@@ -1129,7 +1164,7 @@ export function NewSaleDialog({
           </div>
 
           {/* Right side - Shopping Cart */}
-          <div className="w-96 flex flex-col overflow-hidden">
+          <div className="w-[350px] flex flex-col overflow-hidden">
             <Card className="h-full flex flex-col">
               <CardHeader className="p-3 pb-2">
                 <CardTitle className="flex items-center gap-2 text-base">
@@ -1149,12 +1184,32 @@ export function NewSaleDialog({
                 ) : (
                   <ScrollArea className="h-full pr-2">
                     <div className="space-y-2">
-                      {items.map((item) => (
-                        <div key={item.id} className="border rounded-md p-2.5 bg-card hover:bg-accent/50 transition-colors">
-                          {/* Header: name + badge */}
-                          <div className="flex items-center justify-between gap-1 mb-1.5">
-                            <p className="font-semibold text-sm truncate flex-1">{getItemName(item)}</p>
-                            <div className="flex items-center gap-1">
+                      {items.map((item) => {
+                        const imagenUrl = getItemImage(item);
+                        return (
+                        <div key={item.id} className="border rounded-md p-3 bg-card hover:bg-accent/50 transition-colors">
+                          <div className="flex gap-3">
+                            {/* Product Image */}
+                            <div className="w-16 h-16 flex-shrink-0 rounded-md overflow-hidden bg-muted">
+                              {imagenUrl ? (
+                                <img
+                                  src={imagenUrl}
+                                  alt={getItemName(item)}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center">
+                                  <Package className="h-6 w-6 text-muted-foreground" />
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Item Details */}
+                            <div className="flex-1 min-w-0">
+                              {/* Header: name + badge */}
+                              <div className="flex items-center justify-between gap-1 mb-2">
+                                <p className="font-bold text-base truncate flex-1">{getItemName(item)}</p>
+                                <div className="flex items-center gap-1">
                               {item.type === 'promotion' && (
                                 <>
                                   <Badge variant="destructive" className="text-[10px] h-5 px-2">Promo</Badge>
@@ -1248,11 +1303,11 @@ export function NewSaleDialog({
 
                           {/* Quantity controls */}
                           <div className="flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center gap-2">
                               <Button
                                 variant="outline"
                                 size="icon"
-                                className="h-7 w-7"
+                                className="h-10 w-10"
                                 onClick={() => {
                                   if (item.type === 'combo') {
                                     handleComboQuantityChange(item.id, item.cantidad - 1);
@@ -1263,7 +1318,7 @@ export function NewSaleDialog({
                                   }
                                 }}
                               >
-                                <Minus className="h-3.5 w-3.5" />
+                                <Minus className="h-5 w-5" />
                               </Button>
                               <Input
                                 type="number"
@@ -1279,12 +1334,12 @@ export function NewSaleDialog({
                                     handleProductQuantityChange(item.id, value);
                                   }
                                 }}
-                                className="h-7 w-12 text-center text-sm p-1 font-semibold"
+                                className="h-10 w-16 text-center text-lg p-1 font-bold"
                               />
                               <Button
                                 variant="outline"
                                 size="icon"
-                                className="h-7 w-7"
+                                className="h-10 w-10"
                                 onClick={() => {
                                   if (item.type === 'combo') {
                                     handleComboQuantityChange(item.id, item.cantidad + 1);
@@ -1295,30 +1350,33 @@ export function NewSaleDialog({
                                   }
                                 }}
                               >
-                                <Plus className="h-3.5 w-3.5" />
+                                <Plus className="h-5 w-5" />
                               </Button>
                             </div>
 
                             {/* Total + Delete */}
-                            <div className="flex items-center gap-1.5">
+                            <div className="flex items-center gap-2">
                               <div className="text-right">
-                                <p className="text-[10px] text-muted-foreground">Total</p>
-                                <p className="text-base font-bold text-green-600">
+                                <p className="text-xs text-muted-foreground font-medium">Total</p>
+                                <p className="text-xl font-bold text-[#00ff41]">
                                   {formatCurrency(item.total, moneda)}
                                 </p>
                               </div>
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-7 w-7 text-destructive"
+                                className="h-10 w-10 text-destructive hover:bg-destructive/10"
                                 onClick={() => removeItem(item.id)}
                               >
-                                <Trash2 className="h-3.5 w-3.5" />
+                                <Trash2 className="h-5 w-5" />
                               </Button>
                             </div>
                           </div>
+                            </div>
+                          </div>
                         </div>
-                      ))}
+                      );
+                      })}
                     </div>
                   </ScrollArea>
                 )}
@@ -1404,10 +1462,10 @@ export function NewSaleDialog({
                     )}
                     
                     <Separator />
-                    
-                    <div className="flex justify-between text-xl font-bold">
+
+                    <div className="flex justify-between text-3xl font-bold">
                       <span>Total:</span>
-                      <span className="text-green-600">{formatCurrency(totalConDescuentoAdicional, moneda)}</span>
+                      <span className="text-[#00ff41]">{formatCurrency(totalConDescuentoAdicional, moneda)}</span>
                     </div>
                   </div>
 

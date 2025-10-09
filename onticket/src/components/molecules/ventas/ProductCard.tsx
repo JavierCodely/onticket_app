@@ -122,7 +122,7 @@ export function ProductCard({
         <div className="space-y-0.5">
           <div>
             <h3 className="font-semibold text-[11px] line-clamp-1 leading-tight">{nombre}</h3>
-            <p className="text-[9px] text-muted-foreground truncate">{categoria}</p>
+            <p className="text-sm font-medium text-muted-foreground truncate">{categoria}</p>
           </div>
 
           {/* Prices */}
@@ -132,7 +132,7 @@ export function ProductCard({
                 {formatCurrency(precioAnterior, moneda)}
               </p>
             )}
-            <p className={cn('font-bold text-base text-center leading-tight', isPromotion ? 'text-red-600' : 'text-green-600')}>
+            <p className={cn('font-bold text-xl text-center leading-tight', isPromotion ? 'text-red-600' : 'text-[#00ff41]')}>
               {formatCurrency(precio, moneda)}
             </p>
             {precioCompra !== undefined && (

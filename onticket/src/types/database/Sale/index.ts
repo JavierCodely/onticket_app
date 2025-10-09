@@ -4,6 +4,7 @@
  */
 
 import type { CurrencyCode } from '../../currency';
+import type { CategoriaProducto } from '../Productos';
 
 /**
  * Payment method enumeration
@@ -46,7 +47,7 @@ export interface Sale {
   productos?: {
     id: string;
     nombre: string;
-    categoria: string;
+    categoria: CategoriaProducto;
     imagen_url?: string | null;
   };
   personal?: {
@@ -74,7 +75,7 @@ export interface SaleWithDetails extends Sale {
   productos: {
     id: string;
     nombre: string;
-    categoria: string;
+    categoria: CategoriaProducto;
     imagen_url?: string | null;
   };
   personal: {

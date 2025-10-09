@@ -22,6 +22,7 @@ import { SalesFilters } from '@/components/molecules/ventas/SalesFilters';
 import { NewSaleDialog } from '@/components/organisms/ventas/NewSaleDialog';
 import { useSales } from '@/hooks/useSales';
 import { formatCurrency } from '@/lib/currency-utils';
+import { getCategoryBadgeClass } from '@/lib/category-colors';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { format } from 'date-fns';
@@ -200,41 +201,53 @@ export function VentasPage() {
             ) : (
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Fecha</TableHead>
-                    <TableHead>Producto</TableHead>
-                    <TableHead>Categoría</TableHead>
-                    <TableHead>Empleado</TableHead>
-                    <TableHead>Cantidad</TableHead>
-                    <TableHead>Método de Pago</TableHead>
-                    <TableHead>Moneda</TableHead>
-                    <TableHead className="text-right">Total</TableHead>
+                  <TableRow className="border-b-2">
+                    <TableHead className="h-14 text-base font-bold">Fecha</TableHead>
+                    <TableHead className="h-14 text-base font-bold">Producto</TableHead>
+                    <TableHead className="h-14 text-base font-bold">Categoría</TableHead>
+                    <TableHead className="h-14 text-base font-bold">Empleado</TableHead>
+                    <TableHead className="h-14 text-base font-bold">Cantidad</TableHead>
+                    <TableHead className="h-14 text-base font-bold">Método de Pago</TableHead>
+                    <TableHead className="h-14 text-base font-bold">Moneda</TableHead>
+                    <TableHead className="h-14 text-base font-bold text-right">Total</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {sales.map((sale) => (
-                    <TableRow key={sale.id}>
-                      <TableCell>
+                    <TableRow key={sale.id} className="h-16 hover:bg-muted/50 transition-colors">
+                      <TableCell className="text-base font-medium">
                         {format(new Date(sale.created_at), 'dd/MM/yyyy HH:mm', {
                           locale: es,
                         })}
                       </TableCell>
-                      <TableCell className="font-medium">
+                      <TableCell className="font-semibold text-base">
                         {sale.productos?.nombre || 'N/A'}
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline">{sale.productos?.categoria || 'N/A'}</Badge>
+                        {sale.productos?.categoria && (
+                          <span className={getCategoryBadgeClass(sale.productos.categoria)}>
+                            {sale.productos.categoria}
+                          </span>
+                        )}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-base">
                         {sale.personal?.nombre} {sale.personal?.apellido}
                       </TableCell>
-                      <TableCell>{sale.cantidad}</TableCell>
-                      <TableCell>{getMetodoPagoLabel(sale.metodo_pago)}</TableCell>
                       <TableCell>
-                        <Badge variant="secondary">{sale.moneda}</Badge>
+                        <span className="inline-flex items-center justify-center min-w-[3rem] px-3 py-1.5 rounded-md bg-primary/10 text-primary font-bold text-lg border-2 border-primary/20">
+                          {sale.cantidad}
+                        </span>
                       </TableCell>
-                      <TableCell className="text-right font-medium">
-                        {formatCurrency(sale.total, sale.moneda)}
+                      <TableCell className="text-base">{getMetodoPagoLabel(sale.metodo_pago)}</TableCell>
+                      <TableCell>
+                        <Badge variant="secondary" className="text-sm font-semibold px-3 py-1">
+                          {sale.moneda}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <span className="font-bold text-xl text-[#00ff41]">
+                          {formatCurrency(sale.total, sale.moneda)}
+                        </span>
                       </TableCell>
                     </TableRow>
                   ))}
