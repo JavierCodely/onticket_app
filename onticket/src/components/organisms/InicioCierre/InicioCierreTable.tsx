@@ -53,16 +53,16 @@ export const InicioCierreTable: React.FC<InicioCierreTableProps> = ({
     <div className="border rounded-lg overflow-hidden">
       <Table>
         <TableHeader>
-          <TableRow className="bg-muted/50 hover:bg-muted/50">
-            <TableHead className="font-semibold">Producto</TableHead>
-            <TableHead className="font-semibold">Categoría</TableHead>
-            <TableHead className="text-center font-semibold">Fecha Inicio</TableHead>
-            <TableHead className="text-center font-semibold">Fecha Cierre</TableHead>
-            <TableHead className="text-center font-semibold">Stock Inicio</TableHead>
-            <TableHead className="text-center font-semibold">Stock Cierre</TableHead>
-            <TableHead className="text-center font-semibold">Total Vendido</TableHead>
-            <TableHead className="text-center font-semibold">Estado</TableHead>
-            <TableHead className="text-center font-semibold">Acciones</TableHead>
+          <TableRow className="bg-muted/50 hover:bg-muted/50 border-b-2">
+            <TableHead className="h-14 text-base font-bold">Producto</TableHead>
+            <TableHead className="h-14 text-base font-bold">Categoría</TableHead>
+            <TableHead className="h-14 text-base font-bold text-center">Fecha Inicio</TableHead>
+            <TableHead className="h-14 text-base font-bold text-center">Fecha Cierre</TableHead>
+            <TableHead className="h-14 text-base font-bold text-center">Stock Inicio</TableHead>
+            <TableHead className="h-14 text-base font-bold text-center">Stock Cierre</TableHead>
+            <TableHead className="h-14 text-base font-bold text-center">Total Vendido</TableHead>
+            <TableHead className="h-14 text-base font-bold text-center">Estado</TableHead>
+            <TableHead className="h-14 text-base font-bold text-center">Acciones</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -72,58 +72,58 @@ export const InicioCierreTable: React.FC<InicioCierreTableProps> = ({
             return (
               <TableRow
                 key={registro.id}
-                className={`hover:bg-muted/30 transition-colors ${
+                className={`h-16 hover:bg-muted/30 transition-colors ${
                   estaAbierto ? 'border-l-4 border-l-blue-500 bg-blue-50 dark:bg-blue-950/20' : ''
                 }`}
               >
-                <TableCell className="font-semibold text-foreground">
+                <TableCell className="font-bold text-base text-foreground">
                   {registro.nombre_producto}
                 </TableCell>
                 <TableCell>
-                  <span className={getCategoryBadgeClass(registro.categoria)}>
+                  <span className={getCategoryBadgeClass(registro.categoria) + ' text-sm font-semibold px-3 py-1.5'}>
                     {registro.categoria}
                   </span>
                 </TableCell>
-                <TableCell className="text-center text-sm">
+                <TableCell className="text-center text-base font-medium">
                   {formatDateTime(registro.fecha_inicio)}
                 </TableCell>
-                <TableCell className="text-center text-sm">
+                <TableCell className="text-center text-base font-medium">
                   {formatDateTime(registro.fecha_cierre)}
                 </TableCell>
                 <TableCell className="text-center">
-                  <span className="inline-flex items-center px-3 py-1 rounded-md bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900 font-semibold text-blue-700 dark:text-blue-400">
+                  <span className="inline-flex items-center px-4 py-2 rounded-md bg-blue-50 dark:bg-blue-950/30 border-2 border-blue-200 dark:border-blue-900 font-bold text-lg text-blue-700 dark:text-blue-400">
                     {registro.stock_inicio}
                   </span>
                 </TableCell>
                 <TableCell className="text-center">
                   {registro.stock_cierre !== null ? (
-                    <span className="inline-flex items-center px-3 py-1 rounded-md bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-900 font-semibold text-purple-700 dark:text-purple-400">
+                    <span className="inline-flex items-center px-4 py-2 rounded-md bg-purple-50 dark:bg-purple-950/30 border-2 border-purple-200 dark:border-purple-900 font-bold text-lg text-purple-700 dark:text-purple-400">
                       {registro.stock_cierre}
                     </span>
                   ) : (
-                    <span className="text-muted-foreground">-</span>
+                    <span className="text-muted-foreground text-lg">-</span>
                   )}
                 </TableCell>
                 <TableCell className="text-center">
                   {registro.total_vendido > 0 ? (
-                    <span className="inline-flex items-center px-3 py-1 rounded-md bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-900 font-bold text-green-700 dark:text-green-400">
+                    <span className="inline-flex items-center px-4 py-2 rounded-md bg-green-50 dark:bg-green-950/30 border-2 border-green-200 dark:border-green-900 font-bold text-xl text-[#00ff41]">
                       {registro.total_vendido}
                     </span>
                   ) : (
-                    <span className="text-muted-foreground font-semibold">
+                    <span className="text-muted-foreground font-semibold text-lg">
                       {registro.total_vendido}
                     </span>
                   )}
                 </TableCell>
                 <TableCell className="text-center">
                   {estaAbierto ? (
-                    <Badge variant="default" className="bg-blue-500 hover:bg-blue-600">
-                      <Clock className="h-3 w-3 mr-1" />
+                    <Badge variant="default" className="bg-blue-500 hover:bg-blue-600 text-sm font-semibold px-3 py-1.5">
+                      <Clock className="h-4 w-4 mr-1" />
                       Abierto
                     </Badge>
                   ) : (
-                    <Badge variant="secondary" className="bg-green-500 hover:bg-green-600 text-white">
-                      <CheckCircle className="h-3 w-3 mr-1" />
+                    <Badge variant="secondary" className="bg-green-500 hover:bg-green-600 text-white text-sm font-semibold px-3 py-1.5">
+                      <CheckCircle className="h-4 w-4 mr-1" />
                       Cerrado
                     </Badge>
                   )}
@@ -134,12 +134,12 @@ export const InicioCierreTable: React.FC<InicioCierreTableProps> = ({
                       variant="default"
                       size="sm"
                       onClick={() => onCerrar(registro)}
-                      className="bg-green-600 hover:bg-green-700"
+                      className="bg-green-600 hover:bg-green-700 text-base font-semibold px-4 py-2 h-10"
                     >
                       Cerrar
                     </Button>
                   ) : (
-                    <span className="text-muted-foreground text-sm">-</span>
+                    <span className="text-muted-foreground text-base">-</span>
                   )}
                 </TableCell>
               </TableRow>

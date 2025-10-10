@@ -15,7 +15,6 @@ import { InicioCierreTable } from '@/components/organisms/InicioCierre';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
-import { Skeleton } from '@/components/ui/skeleton';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -72,7 +71,7 @@ export const InicioCierrePage: React.FC = () => {
     fetchRegistros();
   }, []);
 
-  // Filter registros
+  // Filter registros and sort by total_vendido descending
   useEffect(() => {
     let filtered = registros;
 
@@ -96,6 +95,9 @@ export const InicioCierrePage: React.FC = () => {
     if (selectedCategory !== 'all') {
       filtered = filtered.filter((r) => r.categoria === selectedCategory);
     }
+
+    // Sort by total_vendido descending (most sold first)
+    filtered = filtered.sort((a, b) => b.total_vendido - a.total_vendido);
 
     setFilteredRegistros(filtered);
   }, [registros, fechaDesde, fechaHasta, selectedCategory]);
@@ -346,14 +348,17 @@ export const InicioCierrePage: React.FC = () => {
               <Download className="h-4 w-4 mr-2" />
               Exportar CSV
             </Button>
-            <Button onClick={() => setInicioDialogOpen(true)}>
+            <Button
+              onClick={() => setInicioDialogOpen(true)}
+              disabled={registrosAbiertos > 0}
+            >
               <Play className="h-4 w-4 mr-2" />
               Registrar Inicio
             </Button>
           </div>
         </div>
 
-        {/* Stats */}
+        {/* Active Records Alert */}
         {registrosAbiertos > 0 && (
           <Card className="border-blue-200 dark:border-blue-900 bg-blue-50 dark:bg-blue-950/30">
             <CardHeader className="pb-3">
@@ -409,10 +414,8 @@ export const InicioCierrePage: React.FC = () => {
           </CardHeader>
           <CardContent>
             {loading ? (
-              <div className="space-y-3">
-                {[1, 2, 3].map((i) => (
-                  <Skeleton key={i} className="h-16 w-full" />
-                ))}
+              <div className="p-12 text-center text-muted-foreground">
+                Cargando registros...
               </div>
             ) : (
               <InicioCierreTable

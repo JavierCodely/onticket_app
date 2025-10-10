@@ -32,7 +32,14 @@ export type {
   ComboInsert,
   ComboUpdate,
 } from './database/Combos';
-export type { Sale, SaleInsert, SaleUpdate } from './database/Sale';
+export type {
+  Promocion,
+  PromocionWithProducto,
+  PromocionInsert,
+  PromocionUpdate,
+  PromocionFormData,
+} from './database/Promociones';
+export type { Sale, SaleInsert, SaleUpdate, SaleWithDetails, SaleFilters, MetodoPago } from './database/Sale';
 export type {
   InicioCierre,
   InicioCierreInsert,
