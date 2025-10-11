@@ -4,7 +4,7 @@
  */
 
 import type { CurrencyCode } from '../../currency';
-import type { CategoriaProducto } from '../Productos';
+import type { SaleItem } from '../SaleItem';
 
 /**
  * Payment method enumeration
@@ -12,31 +12,26 @@ import type { CategoriaProducto } from '../Productos';
 export type MetodoPago = 'efectivo' | 'transferencia' | 'tarjeta' | 'billetera_virtual';
 
 /**
- * Sale table interface with multi-currency support
+ * Sale table interface (header only) with multi-currency support
+ * Individual items are stored in sale_items table
  */
 export interface Sale {
   id: string;
   club_id: string;
-  producto_id: string;
   personal_id: string;
-  cantidad: number;
-  precio_unitario: number;
   subtotal: number;
   descuento: number;
   total: number;
   moneda: CurrencyCode;
-  // Multi-currency prices (ARS)
-  precio_unitario_ars: number;
+  // Multi-currency totals (ARS)
   subtotal_ars: number;
   descuento_ars: number;
   total_ars: number;
-  // Multi-currency prices (USD)
-  precio_unitario_usd: number;
+  // Multi-currency totals (USD)
   subtotal_usd: number;
   descuento_usd: number;
   total_usd: number;
-  // Multi-currency prices (BRL)
-  precio_unitario_brl: number;
+  // Multi-currency totals (BRL)
   subtotal_brl: number;
   descuento_brl: number;
   total_brl: number;
@@ -44,24 +39,19 @@ export interface Sale {
   comentarios?: string | null;
   created_at: string;
   // Joined data
-  productos?: {
-    id: string;
-    nombre: string;
-    categoria: CategoriaProducto;
-    imagen_url?: string | null;
-  };
   personal?: {
     id: string;
     nombre: string | null;
     apellido: string | null;
     rol: string;
   };
+  sale_items?: SaleItem[];
 }
 
 /**
  * Sale insert type for creating new sales
  */
-export type SaleInsert = Omit<Sale, 'id' | 'created_at' | 'productos' | 'personal'>;
+export type SaleInsert = Omit<Sale, 'id' | 'created_at' | 'personal' | 'sale_items'>;
 
 /**
  * Sale update type for updating existing sales
@@ -69,21 +59,16 @@ export type SaleInsert = Omit<Sale, 'id' | 'created_at' | 'productos' | 'persona
 export type SaleUpdate = Partial<SaleInsert>;
 
 /**
- * Sale with full details
+ * Sale with full details including items and employee
  */
 export interface SaleWithDetails extends Sale {
-  productos: {
-    id: string;
-    nombre: string;
-    categoria: CategoriaProducto;
-    imagen_url?: string | null;
-  };
   personal: {
     id: string;
     nombre: string | null;
     apellido: string | null;
     rol: string;
   };
+  sale_items: SaleItem[];
 }
 
 /**

@@ -227,13 +227,34 @@ export function useCart(options: UseCartOptions = {}) {
         prev.map((item) => {
           if (item.id !== itemId) return item;
 
+          // Safety check: avoid division by zero
+          if (item.cantidad === 0) {
+            console.error('Item has zero cantidad, cannot update');
+            return item;
+          }
+
           // Calculate descuento unitario based on original item data
           const descuentoUnitario = item.descuento / item.cantidad;
 
-          // Recalculate prices based on new quantity
-          const subtotal = item.precio_unitario * cantidad;
-          const descuento = descuentoUnitario * cantidad;
-          const total = subtotal - descuento;
+          // For combos, the precio_unitario is already the price of the full combo
+          // For products/promotions, it's the price per unit
+          let subtotal: number;
+          let descuento: number;
+          let total: number;
+
+          if (item.type === 'combo') {
+            // For combos: precio_unitario is per combo unit
+            const precioUnitarioCombo = item.precio_unitario;
+            const subtotalOriginal = item.subtotal / item.cantidad;
+            subtotal = subtotalOriginal * cantidad;
+            descuento = descuentoUnitario * cantidad;
+            total = precioUnitarioCombo * cantidad;
+          } else {
+            // For products/promotions: standard calculation
+            subtotal = (item.subtotal / item.cantidad) * cantidad;
+            descuento = descuentoUnitario * cantidad;
+            total = (item.total / item.cantidad) * cantidad;
+          }
 
           return {
             ...item,

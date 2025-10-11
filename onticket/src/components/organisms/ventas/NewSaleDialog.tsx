@@ -22,13 +22,14 @@ import { formatCurrency } from '@/lib/currency-utils';
 import { ProductCard } from '@/components/molecules/ventas/ProductCard';
 import { ComboCard } from '@/components/molecules/ventas/ComboCard';
 import { supabase } from '@/lib/supabase';
-import { 
-  UserCircle, 
-  CreditCard, 
-  Coins, 
-  Package, 
-  Tag, 
-  TrendingUp, 
+import { createSaleWithItems } from '@/utils/createSaleWithItems';
+import {
+  UserCircle,
+  CreditCard,
+  Coins,
+  Package,
+  Tag,
+  TrendingUp,
   Search,
   ShoppingCart as CartIcon,
   Minus,
@@ -48,6 +49,8 @@ interface NewSaleDialogProps {
   combos: Combo[];
   empleados: Personal[];
   onSaleCreated: () => void;
+  editingSale?: any | null;
+  onDeleteSale?: (saleId: string) => Promise<void>;
 }
 
 type ViewMode = 'products' | 'promotions' | 'combos';
@@ -72,6 +75,8 @@ export function NewSaleDialog({
   combos,
   empleados,
   onSaleCreated,
+  editingSale = null,
+  onDeleteSale,
 }: NewSaleDialogProps) {
   const { user } = useAuth();
   const { defaultCurrency } = useCurrency();
@@ -111,34 +116,140 @@ export function NewSaleDialog({
   const selectedEmpleado = empleados.find(emp => emp.id === empleadoId);
   const isSelectedEmpleadoAdmin = selectedEmpleado?.rol === 'Admin';
 
-  // Reset when dialog opens
+  // Reset when dialog opens OR load editing sale
   useEffect(() => {
     if (open) {
-      clearCart();
-      setEmpleado(null);
-      setSearchQuery('');
-      setSelectedCategory('all');
-      setViewMode('products');
-      setDescuentoAdicional(0);
-      setDescuentoInput('');
-      setTipoDescuento('porcentaje');
-
       // Initialize realtime stock
       const stockMap = new Map<string, number>();
       productos.forEach(p => stockMap.set(p.id, p.stock));
       setRealtimeStock(stockMap);
+
+      if (editingSale && editingSale.sale_items) {
+        // EDITING MODE: Pre-load the sale data
+        setEmpleado(editingSale.personal_id || null);
+        changeMetodoPago(editingSale.metodo_pago || 'efectivo');
+        changeCurrency(editingSale.moneda || 'ARS');
+
+        // Pre-load cart items from the sale FIRST
+        clearCart();
+
+        // Calculate the total discount from items BEFORE adding them to cart
+        // This includes discounts from combos and promotions
+        let descuentoTotalFromItems = 0;
+        const combosContados = new Set<string>();
+
+        for (const saleItem of editingSale.sale_items) {
+          if (saleItem.item_type === 'combo' && saleItem.combo_id) {
+            if (!combosContados.has(saleItem.combo_id)) {
+              // For combos, sum all sale_items with the same combo_id
+              const comboItems = editingSale.sale_items.filter(
+                (si: any) => si.item_type === 'combo' && si.combo_id === saleItem.combo_id
+              );
+              const descuentoCombo = comboItems.reduce((sum: number, ci: any) => sum + (ci.descuento || 0), 0);
+              descuentoTotalFromItems += descuentoCombo;
+              combosContados.add(saleItem.combo_id);
+            }
+          } else {
+            descuentoTotalFromItems += saleItem.descuento || 0;
+          }
+        }
+
+        // Calculate additional discount
+        const descuentoTotalEnVenta = editingSale.descuento || 0;
+        const descuentoAdicionalCalculado = Math.max(0, descuentoTotalEnVenta - descuentoTotalFromItems);
+        setDescuentoAdicional(descuentoAdicionalCalculado);
+
+        // Track which combos we've already added (to avoid duplicates)
+        const combosAgregados = new Set<string>();
+
+        for (const saleItem of editingSale.sale_items) {
+          if (saleItem.item_type === 'product') {
+            const producto = productos.find(p => p.id === saleItem.producto_id);
+            if (producto) {
+              addProduct(producto, saleItem.cantidad, false);
+            }
+          } else if (saleItem.item_type === 'promotion' && saleItem.promocion_id) {
+            // Find the promotion and product
+            const promocion = promociones.find(p => p.id === saleItem.promocion_id);
+            const producto = productos.find(p => p.id === saleItem.producto_id);
+
+            if (promocion && producto) {
+              // Add as promotion (not regular product)
+              addProduct(producto, saleItem.cantidad, false, promocion);
+            } else if (!promocion && producto) {
+              // If promotion no longer exists, add as regular product
+              console.warn('Promotion not found, adding as regular product:', saleItem.promocion_id);
+              addProduct(producto, saleItem.cantidad, false);
+            }
+          } else if (saleItem.item_type === 'combo' && saleItem.combo_id) {
+            // For combos, each combo creates MULTIPLE sale_items (one per product)
+            // So we need to only add each combo ONCE
+            if (combosAgregados.has(saleItem.combo_id)) {
+              continue; // Skip if we already added this combo
+            }
+
+            const combo = combos.find(c => c.id === saleItem.combo_id);
+            if (combo) {
+              // Find all sale_items for this combo to calculate how many combos were sold
+              const comboItems = editingSale.sale_items.filter(
+                (si: any) => si.item_type === 'combo' && si.combo_id === saleItem.combo_id
+              );
+
+              // Get the combo structure to know how many products per combo
+              const comboProductos = (combo as any).combo_productos as Array<{
+                cantidad: number;
+                productos: { id: string } | null;
+              }> | undefined;
+
+              if (comboProductos && comboProductos.length > 0) {
+                // Find the first product in the combo to calculate combo quantity
+                const firstComboProduct = comboProductos.find(cp => cp.productos);
+                if (firstComboProduct && firstComboProduct.productos) {
+                  const firstProductSaleItem = comboItems.find(
+                    (ci: any) => ci.producto_id === firstComboProduct.productos!.id
+                  );
+
+                  if (firstProductSaleItem) {
+                    // Calculate how many combos: total cantidad / cantidad per combo
+                    const cantidadCombos = Math.round(
+                      firstProductSaleItem.cantidad / firstComboProduct.cantidad
+                    );
+
+                    addCombo(combo, cantidadCombos);
+                    combosAgregados.add(saleItem.combo_id);
+                  }
+                }
+              }
+            }
+          }
+        }
+      } else {
+        // NEW SALE MODE: Reset everything
+        clearCart();
+        setEmpleado(null);
+        setSearchQuery('');
+        setSelectedCategory('all');
+        setViewMode('products');
+        setDescuentoAdicional(0);
+        setDescuentoInput('');
+        setTipoDescuento('porcentaje');
+      }
     }
-  }, [open, clearCart, setEmpleado, productos]);
+  }, [open, clearCart, setEmpleado, productos, promociones, combos, editingSale, addProduct, addCombo, changeMetodoPago, changeCurrency]);
 
   // Clear cart when employee changes (to recalculate prices based on new employee's role)
+  // Skip this behavior when editing a sale
   useEffect(() => {
+    // Don't clear cart when in editing mode
+    if (editingSale) return;
+
     // Only clear cart if there are items AND an employee was previously selected
     // This prevents clearing on initial selection
     if (items.length > 0 && empleadoId) {
       clearCart();
       toast.info('Carrito vaciado. Los precios dependen del rol del empleado seleccionado.');
     }
-  }, [empleadoId]);
+  }, [empleadoId, editingSale]);
 
   // Subscribe to realtime stock updates
   useEffect(() => {
@@ -450,7 +561,6 @@ export function NewSaleDialog({
 
     const promocion = item.promocion;
     const producto = item.producto;
-    const limiteUsos = promocion.limite_usos_por_venta || 999;
 
     // If quantity is 0, remove the item
     if (newQuantity === 0) {
@@ -479,11 +589,9 @@ export function NewSaleDialog({
       return;
     }
 
-    // Check limite_usos_por_venta
-    if (newQuantity > limiteUsos) {
-      toast.error(`Esta promoción tiene un límite de ${limiteUsos} unidad(es) por venta`);
-      return;
-    }
+    // Note: limite_usos_por_venta limits how many LINES/ENTRIES of this promotion
+    // can be added to a sale, NOT the quantity within each line. That validation
+    // is done in handleProductClick when adding new lines.
 
     updateQuantity(itemId, newQuantity);
   };
@@ -502,20 +610,6 @@ export function NewSaleDialog({
       return;
     }
 
-    // Check if product is already in cart (same product and same promotion status)
-    const existingItem = items.find(item => {
-      if (promocion) {
-        return item.type === 'promotion' &&
-               item.producto_id === producto.id &&
-               item.promocion_id === promocion.id;
-      } else {
-        return item.type === 'product' && item.producto_id === producto.id;
-      }
-    });
-
-    // Get current quantity
-    const currentQuantity = existingItem ? existingItem.cantidad : 0;
-
     // Check total quantity in cart (including products inside combos)
     const cantidadEnCarrito = getProductQuantityInCart(producto.id);
 
@@ -527,40 +621,36 @@ export function NewSaleDialog({
         return;
       }
 
-      const limiteUsos = promocion.limite_usos_por_venta || 999;
+      // COUNT HOW MANY LINES of this promotion are in the cart
+      const lineasDePromocion = items.filter(item =>
+        item.type === 'promotion' &&
+        item.producto_id === producto.id &&
+        item.promocion_id === promocion.id
+      ).length;
 
-      if (currentQuantity >= limiteUsos) {
-        toast.error(`Esta promoción tiene un límite de ${limiteUsos} unidad(es) por venta`);
+      const limiteLineas = promocion.limite_usos_por_venta || 999;
+
+      if (lineasDePromocion >= limiteLineas) {
+        toast.error(`Esta promoción tiene un límite de ${limiteLineas} entrada(s) por venta. Ya has agregado ${lineasDePromocion}.`);
         return;
       }
 
-      // Check if we can add more within cantidad_maxima
-      if (promocion.cantidad_maxima) {
-        const newQuantity = currentQuantity + 1;
-        if (newQuantity > promocion.cantidad_maxima) {
-          toast.error(`Esta promoción permite máximo ${promocion.cantidad_maxima} unidades`);
-          return;
-        }
-      }
-    }
+      // Calculate initial quantity for this NEW line
+      const stockDisponible = currentStock - cantidadEnCarrito;
 
-    // Check stock availability
-    if (cantidadEnCarrito >= currentStock) {
-      toast.error(`Stock insuficiente. Solo quedan ${currentStock} unidades (${cantidadEnCarrito} ya en carrito)`);
-      return;
-    }
+      // ALWAYS start with cantidad_minima (user can increase manually to cantidad_maxima)
+      let initialQuantity = promocion.cantidad_minima;
 
-    // If item exists, increase quantity instead of adding duplicate
-    if (existingItem) {
-      if (promocion) {
-        handlePromocionQuantityChange(existingItem.id, existingItem.cantidad + 1);
-      } else {
-        handleProductQuantityChange(existingItem.id, existingItem.cantidad + 1);
+      // Final validation: cannot exceed stock
+      if (initialQuantity > stockDisponible) {
+        initialQuantity = stockDisponible;
       }
-      toast.success(`Cantidad aumentada: ${producto.nombre}`);
-    } else {
-      // For promotions, add cantidad_minima units to activate the promotion
-      const initialQuantity = promocion ? promocion.cantidad_minima : 1;
+
+      // Cannot be less than cantidad_minima
+      if (initialQuantity < promocion.cantidad_minima) {
+        toast.error(`Stock insuficiente. Esta promoción requiere mínimo ${promocion.cantidad_minima} unidades`);
+        return;
+      }
 
       // Check if we have enough stock for the initial quantity
       if (cantidadEnCarrito + initialQuantity > currentStock) {
@@ -569,10 +659,25 @@ export function NewSaleDialog({
       }
 
       addProduct(producto, initialQuantity, isSelectedEmpleadoAdmin, promocion);
-    if (promocion) {
-        toast.success(`Promoción agregada: ${producto.nombre} (${initialQuantity} unidades)`);
+      toast.success(`Promoción agregada: ${producto.nombre} (${initialQuantity} unidades) - Línea ${lineasDePromocion + 1} de ${limiteLineas}`);
     } else {
-      toast.success(`Producto agregado: ${producto.nombre}`);
+      // For regular products, check if already exists and increase quantity
+      const existingItem = items.find(item =>
+        item.type === 'product' && item.producto_id === producto.id
+      );
+
+      // Check stock availability
+      if (cantidadEnCarrito >= currentStock) {
+        toast.error(`Stock insuficiente. Solo quedan ${currentStock} unidades (${cantidadEnCarrito} ya en carrito)`);
+        return;
+      }
+
+      if (existingItem) {
+        handleProductQuantityChange(existingItem.id, existingItem.cantidad + 1);
+        toast.success(`Cantidad aumentada: ${producto.nombre}`);
+      } else {
+        addProduct(producto, 1, isSelectedEmpleadoAdmin);
+        toast.success(`Producto agregado: ${producto.nombre}`);
       }
     }
   };
@@ -586,6 +691,18 @@ export function NewSaleDialog({
     // Check global usage limit (total uses across all sales)
     if (combo.limite_usos !== null && combo.cantidad_usos >= combo.limite_usos) {
       toast.error('Este combo ha alcanzado su límite de usos global');
+      return;
+    }
+
+    // COUNT HOW MANY LINES of this combo are in the cart
+    const lineasDeCombo = items.filter(item =>
+      item.type === 'combo' && item.combo_id === combo.id
+    ).length;
+
+    const limiteLineas = combo.limite_usos_por_venta || 999;
+
+    if (lineasDeCombo >= limiteLineas) {
+      toast.error(`Este combo tiene un límite de ${limiteLineas} entrada(s) por venta. Ya has agregado ${lineasDeCombo}.`);
       return;
     }
 
@@ -615,30 +732,9 @@ export function NewSaleDialog({
       }
     }
 
-    // Check if combo is already in cart
-    const existingItem = items.find(item =>
-      item.type === 'combo' && item.combo_id === combo.id
-    );
-
-    // Get current quantity in cart
-    const currentQuantity = existingItem ? existingItem.cantidad : 0;
-
-    // Check limite_usos_por_venta
-    const limiteUsos = combo.limite_usos_por_venta || 999;
-
-    if (currentQuantity >= limiteUsos) {
-      toast.error(`Este combo tiene un límite de ${limiteUsos} unidad(es) por venta`);
-      return;
-    }
-
-    // If item exists, increase quantity instead of adding duplicate
-    if (existingItem) {
-      handleComboQuantityChange(existingItem.id, existingItem.cantidad + 1);
-      toast.success(`Cantidad aumentada: ${combo.nombre}`);
-    } else {
+    // Always add as NEW line (don't merge with existing)
     addCombo(combo, 1);
-    toast.success(`Combo agregado: ${combo.nombre}`);
-    }
+    toast.success(`Combo agregado: ${combo.nombre} - Línea ${lineasDeCombo + 1} de ${limiteLineas}`);
   };
 
   const handleConfirmSale = async () => {
@@ -650,236 +746,26 @@ export function NewSaleDialog({
     setIsSubmitting(true);
 
     try {
-      // Calculate exchange rates for multi-currency storage
-      const exchangeRates = {
-        ARS: 1,
-        USD: 1, // These would come from a real exchange rate API
-        BRL: 1,
-      };
-
-      // Process each cart item
-      for (const item of items) {
-        // Get the producto_id
-        let producto_id: string;
-
-        if (item.type === 'product' || item.type === 'promotion') {
-          producto_id = item.producto_id;
-        } else if (item.type === 'combo') {
-          // For combos, we need to create a sale entry for each product in the combo
-          // This is a simplified approach - you may want to handle this differently
-          const comboProductos = (item.combo as any).combo_productos as Array<{
-            cantidad: number;
-            productos: { id: string; nombre: string } | null;
-          }>;
-
-          // Calculate total quantity of products in the combo
-          const totalProductosEnCombo = comboProductos.reduce((sum, cp) => sum + (cp.cantidad || 0), 0);
-
-          for (const comboItem of comboProductos) {
-            if (!comboItem.productos) continue;
-
-            // Calculate prices for combo products
-            // Distribute the combo price proportionally based on product quantities
-            const precioUnitarioPorProducto = item.precio_unitario / totalProductosEnCombo; // Price per unit product
-            const comboItemSubtotal = precioUnitarioPorProducto * comboItem.cantidad * item.cantidad; // Subtotal for all combos
-            const descuentoUnitarioPorProducto = item.descuento / totalProductosEnCombo; // Discount per unit product
-            const comboItemDescuento = descuentoUnitarioPorProducto * comboItem.cantidad * item.cantidad; // Discount for all combos
-            const comboItemTotal = comboItemSubtotal - comboItemDescuento; // Total for all combos
-
-            // Calculate all currency values
-            const precioUnitarioARS = moneda === 'ARS' ? precioUnitarioPorProducto : precioUnitarioPorProducto * exchangeRates.ARS;
-            const subtotalARS = moneda === 'ARS' ? comboItemSubtotal : comboItemSubtotal * exchangeRates.ARS;
-            const descuentoARS = moneda === 'ARS' ? comboItemDescuento : comboItemDescuento * exchangeRates.ARS;
-            const totalARS = moneda === 'ARS' ? comboItemTotal : comboItemTotal * exchangeRates.ARS;
-
-            const precioUnitarioUSD = moneda === 'USD' ? precioUnitarioPorProducto : precioUnitarioPorProducto * exchangeRates.USD;
-            const subtotalUSD = moneda === 'USD' ? comboItemSubtotal : comboItemSubtotal * exchangeRates.USD;
-            const descuentoUSD = moneda === 'USD' ? comboItemDescuento : comboItemDescuento * exchangeRates.USD;
-            const totalUSD = moneda === 'USD' ? comboItemTotal : comboItemTotal * exchangeRates.USD;
-
-            const precioUnitarioBRL = moneda === 'BRL' ? precioUnitarioPorProducto : precioUnitarioPorProducto * exchangeRates.BRL;
-            const subtotalBRL = moneda === 'BRL' ? comboItemSubtotal : comboItemSubtotal * exchangeRates.BRL;
-            const descuentoBRL = moneda === 'BRL' ? comboItemDescuento : comboItemDescuento * exchangeRates.BRL;
-            const totalBRL = moneda === 'BRL' ? comboItemTotal : comboItemTotal * exchangeRates.BRL;
-
-            const saleData = {
-              club_id: user.club.id,
-              producto_id: comboItem.productos.id,
-              personal_id: empleadoId,
-              cantidad: item.cantidad * comboItem.cantidad,
-              precio_unitario: precioUnitarioPorProducto,
-              subtotal: comboItemSubtotal,
-              descuento: comboItemDescuento,
-              total: comboItemTotal,
-              moneda,
-              precio_unitario_ars: precioUnitarioARS,
-              subtotal_ars: subtotalARS,
-              descuento_ars: descuentoARS,
-              total_ars: totalARS,
-              precio_unitario_usd: precioUnitarioUSD,
-              subtotal_usd: subtotalUSD,
-              descuento_usd: descuentoUSD,
-              total_usd: totalUSD,
-              precio_unitario_brl: precioUnitarioBRL,
-              subtotal_brl: subtotalBRL,
-              descuento_brl: descuentoBRL,
-              total_brl: totalBRL,
-              metodo_pago: metodoPago,
-            };
-
-            const { error: insertError } = await supabase.from('sale').insert(saleData as any);
-
-            if (insertError) {
-              throw new Error(`Error al guardar venta de combo: ${insertError.message}`);
-            }
-
-            // Stock is automatically decremented by the reduce_stock_after_sale trigger
-          }
-
-          // Update combo usage count if applicable
-          if (item.combo.limite_usos !== null) {
-            // First, get the current cantidad_usos from the database
-            const { data: currentCombo, error: selectError } = await supabase
-              .from('combos')
-              .select('cantidad_usos')
-              .eq('id', item.combo_id)
-              .single();
-
-            if (selectError) {
-              console.error('Error fetching current combo usage:', selectError);
-            } else if (currentCombo) {
-              // Increment cantidad_usos by 1 (one sale), not by item.cantidad
-              // cantidad_usos tracks number of sales, not number of units sold
-              const { error: comboError } = await (supabase
-                .from('combos') as any)
-                .update({ cantidad_usos: (currentCombo as any).cantidad_usos + 1 })
-                .eq('id', item.combo_id);
-
-              if (comboError) {
-                console.error('Error updating combo usage:', comboError);
-              }
-            }
-          }
-
-          continue; // Skip to next item
-        } else {
-          throw new Error('Tipo de item desconocido');
-        }
-
-        // Calculate all currency values (for products and promotions)
-        const precioUnitarioARS = moneda === 'ARS' ? item.precio_unitario : item.precio_unitario * exchangeRates.ARS;
-        const subtotalARS = moneda === 'ARS' ? item.subtotal : item.subtotal * exchangeRates.ARS;
-        const precioUnitarioUSD = moneda === 'USD' ? item.precio_unitario : item.precio_unitario * exchangeRates.USD;
-        const subtotalUSD = moneda === 'USD' ? item.subtotal : item.subtotal * exchangeRates.USD;
-        const precioUnitarioBRL = moneda === 'BRL' ? item.precio_unitario : item.precio_unitario * exchangeRates.BRL;
-        const subtotalBRL = moneda === 'BRL' ? item.subtotal : item.subtotal * exchangeRates.BRL;
-
-        // Apply additional discount proportionally if exists
-        let finalTotal = item.total;
-        let finalDescuento = item.descuento;
-
-        if (descuentoAdicional > 0) {
-          const proportion = item.total / total;
-          const itemDescuentoAdicional = descuentoAdicional * proportion;
-          finalTotal = item.total - itemDescuentoAdicional;
-          finalDescuento = item.descuento + itemDescuentoAdicional;
-        }
-
-        // Recalculate currency values with additional discount
-        const finalTotalARS = moneda === 'ARS' ? finalTotal : finalTotal * exchangeRates.ARS;
-        const finalDescuentoARS = moneda === 'ARS' ? finalDescuento : finalDescuento * exchangeRates.ARS;
-
-        const finalTotalUSD = moneda === 'USD' ? finalTotal : finalTotal * exchangeRates.USD;
-        const finalDescuentoUSD = moneda === 'USD' ? finalDescuento : finalDescuento * exchangeRates.USD;
-
-        const finalTotalBRL = moneda === 'BRL' ? finalTotal : finalTotal * exchangeRates.BRL;
-        const finalDescuentoBRL = moneda === 'BRL' ? finalDescuento : finalDescuento * exchangeRates.BRL;
-
-        const saleData = {
-          club_id: user.club.id,
-          producto_id,
-          personal_id: empleadoId,
-          cantidad: item.cantidad,
-          precio_unitario: item.precio_unitario,
-          subtotal: item.subtotal,
-          descuento: finalDescuento,
-          total: finalTotal,
-          moneda,
-          precio_unitario_ars: precioUnitarioARS,
-          subtotal_ars: subtotalARS,
-          descuento_ars: finalDescuentoARS,
-          total_ars: finalTotalARS,
-          precio_unitario_usd: precioUnitarioUSD,
-          subtotal_usd: subtotalUSD,
-          descuento_usd: finalDescuentoUSD,
-          total_usd: finalTotalUSD,
-          precio_unitario_brl: precioUnitarioBRL,
-          subtotal_brl: subtotalBRL,
-          descuento_brl: finalDescuentoBRL,
-          total_brl: finalTotalBRL,
-          metodo_pago: metodoPago,
-        };
-
-        const { error: insertError } = await supabase.from('sale').insert(saleData as any);
-
-        if (insertError) {
-          throw new Error(`Error al guardar venta: ${insertError.message}`);
-        }
-
-        // Stock is automatically decremented by the reduce_stock_after_sale trigger
-
-        // Update promotion usage (always, for statistics tracking)
-        if (item.type === 'promotion') {
-          console.log('🔵 Updating promotion usage for:', item.promocion_id);
-
-          // First, get the current cantidad_usos and limite_usos from the database
-          const { data: currentPromo, error: selectError } = await supabase
-            .from('promociones')
-            .select('cantidad_usos, limite_usos')
-            .eq('id', item.promocion_id)
-            .single();
-
-          if (selectError) {
-            console.error('❌ Error fetching current promotion usage:', selectError);
-          } else if (currentPromo) {
-            // Increment cantidad_usos by 1 (one sale), not by item.cantidad
-            // cantidad_usos tracks number of sales, not number of units sold
-            const newCantidadUsos = (currentPromo as any).cantidad_usos + 1;
-            console.log('📊 Promotion stats:');
-            console.log('  - Current cantidad_usos:', (currentPromo as any).cantidad_usos);
-            console.log('  - limite_usos:', (currentPromo as any).limite_usos);
-            console.log('  - Adding: 1 (one sale)');
-            console.log('  - New cantidad_usos:', newCantidadUsos);
-
-            // Check if update will violate constraint
-            if ((currentPromo as any).limite_usos !== null && newCantidadUsos > (currentPromo as any).limite_usos) {
-              console.error('❌ UPDATE WILL VIOLATE CONSTRAINT: new cantidad_usos (' + newCantidadUsos + ') > limite_usos (' + (currentPromo as any).limite_usos + ')');
-            }
-
-            // Now update with the current value from database
-            const { data: updateData, error: promoError } = await (supabase
-              .from('promociones') as any)
-              .update({ cantidad_usos: newCantidadUsos })
-              .eq('id', item.promocion_id)
-              .select();
-
-            if (promoError) {
-              console.error('❌ Error updating promotion usage:');
-              console.error('  - Code:', promoError.code);
-              console.error('  - Message:', promoError.message);
-              console.error('  - Details:', promoError.details);
-              console.error('  - Hint:', promoError.hint);
-              console.error('  - Full error:', promoError);
-            } else {
-              console.log('✅ Promotion usage updated successfully:', updateData);
-            }
-          } else {
-            console.error('❌ No promotion data returned');
-          }
-        }
+      // If editing, delete the old sale first (this will restore stock)
+      if (editingSale && onDeleteSale) {
+        await onDeleteSale(editingSale.id);
       }
 
-      toast.success('Venta realizada con éxito');
+      // Create the new/updated sale
+      await createSaleWithItems({
+        clubId: user.club.id,
+        personalId: empleadoId,
+        items,
+        subtotal,
+        descuentoTotal,
+        descuentoAdicional,
+        total,
+        totalConDescuentoAdicional,
+        moneda,
+        metodoPago,
+      });
+
+      toast.success(editingSale ? 'Venta actualizada con éxito' : 'Venta realizada con éxito');
       clearCart();
       onSaleCreated();
       onOpenChange(false);
@@ -916,9 +802,12 @@ export function NewSaleDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="!max-w-[95vw] !w-[95vw] !h-[95vh] !min-h-[95vh] p-0 flex flex-col sm:!max-w-[95vw] md:!max-w-[95vw] lg:!max-w-[95vw]">
         <DialogHeader className="p-6 pb-0 shrink-0">
-          <DialogTitle>Nueva Venta</DialogTitle>
+          <DialogTitle>{editingSale ? 'Editar Venta' : 'Nueva Venta'}</DialogTitle>
           <DialogDescription>
-            Selecciona el empleado, método de pago y agrega productos al carrito
+            {editingSale
+              ? 'Modifica los productos, cantidades o detalles de la venta'
+              : 'Selecciona el empleado, método de pago y agrega productos al carrito'
+            }
           </DialogDescription>
         </DialogHeader>
 
@@ -1278,10 +1167,10 @@ export function NewSaleDialog({
                               <div className="space-y-1">
                                 {((item.combo as any).combo_productos as Array<{
                                   cantidad: number;
-                                  productos: { nombre: string; categoria: string } | null;
-                                }>).map((comboItem, idx) => (
-                                  comboItem.productos && (
-                                    <div key={idx} className="flex items-center gap-1.5 text-[11px]">
+                                  productos: { id?: string; nombre: string; categoria: string } | null;
+                                }>).map((comboItem, idx) =>
+                                  comboItem.productos ? (
+                                    <div key={comboItem.productos.id || `combo-item-${idx}`} className="flex items-center gap-1.5 text-[11px]">
                                       <span className="font-bold text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/30 px-1.5 py-0.5 rounded text-[10px]">
                                         {comboItem.cantidad}x
                                       </span>
@@ -1289,8 +1178,8 @@ export function NewSaleDialog({
                                         {comboItem.productos.nombre}
                                       </span>
                                     </div>
-                                  )
-                                ))}
+                                  ) : null
+                                )}
                               </div>
                             </div>
                           )}
@@ -1474,7 +1363,7 @@ export function NewSaleDialog({
                     onClick={handleConfirmSale}
                     disabled={!isValid || isSubmitting}
                   >
-                    {isSubmitting ? 'Procesando...' : 'Confirmar Venta'}
+                    {isSubmitting ? 'Procesando...' : (editingSale ? 'Guardar Cambios' : 'Confirmar Venta')}
                   </Button>
                   {!isValid && (
                     <p className="text-sm text-muted-foreground text-center">

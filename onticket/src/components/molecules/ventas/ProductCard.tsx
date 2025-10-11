@@ -53,100 +53,130 @@ export function ProductCard({
   return (
     <Card
       className={cn(
-        'cursor-pointer transition-all hover:shadow-md',
+        'cursor-pointer transition-all hover:shadow-md overflow-hidden',
         isOutOfStock && 'opacity-50 cursor-not-allowed',
         className
       )}
       onClick={!isOutOfStock ? onClick : undefined}
     >
-      <CardContent className="p-2">
-        {/* Image */}
-        <div className="relative aspect-square mb-1.5 rounded-md overflow-hidden bg-muted">
-          {imagen_url ? (
-            <img
-              src={imagen_url}
-              alt={nombre}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <Package className="h-6 w-6 text-muted-foreground" />
-            </div>
-          )}
-
-          {/* Type Badge */}
-          {isPromotion && (
-            <Badge className="absolute top-0.5 right-0.5 bg-red-500 h-4 text-[9px] px-1 py-0">
-              <Tag className="h-2 w-2 mr-0.5" />
-              Promo
-            </Badge>
-          )}
-          {type === 'combo' && (
-            <Badge className="absolute top-0.5 right-0.5 bg-purple-500 h-4 text-[9px] px-1 py-0">
-              <TrendingUp className="h-2 w-2 mr-0.5" />
-              Combo
-            </Badge>
-          )}
-
-          {/* Stock Badge */}
-          {showStock && isOutOfStock && (
-            <Badge variant="destructive" className="absolute top-0.5 left-0.5 h-4 text-[9px] px-1 py-0">
-              Sin Stock
-            </Badge>
-          )}
-          {showStock && isLowStock && (
-            <Badge variant="secondary" className="absolute top-0.5 left-0.5 h-4 text-[9px] px-1 py-0">
-              Bajo
-            </Badge>
-          )}
-
-          {/* Promotion Limits Badge */}
-          {isPromotion && cantidadMinima && cantidadMinima > 1 && (
-            <Badge variant="default" className="absolute bottom-0.5 left-0.5 bg-blue-600 h-5 text-[9px] px-1.5 py-0 backdrop-blur-sm font-semibold">
-              Mín: {cantidadMinima}
-            </Badge>
-          )}
-          {isPromotion && cantidadMaxima && (
-            <Badge variant="outline" className="absolute bottom-0.5 right-0.5 bg-background/90 h-4 text-[8px] px-1 py-0 backdrop-blur-sm">
-              Máx: {cantidadMaxima}
-            </Badge>
-          )}
-          {isPromotion && limiteUsosPorVenta && limiteUsosPorVenta < 999 && !cantidadMaxima && (
-            <Badge variant="outline" className="absolute bottom-0.5 right-0.5 bg-background/90 h-4 text-[8px] px-1 py-0 backdrop-blur-sm">
-              Límite: {limiteUsosPorVenta}
-            </Badge>
-          )}
-        </div>
-
-        {/* Product Info */}
-        <div className="space-y-0.5">
-          <div>
-            <h3 className="font-semibold text-[11px] line-clamp-1 leading-tight">{nombre}</h3>
-            <p className="text-sm font-medium text-muted-foreground truncate">{categoria}</p>
+      <CardContent className="p-0 relative aspect-square">
+        {/* Background Image */}
+        {imagen_url ? (
+          <img
+            src={imagen_url}
+            alt={nombre}
+            className="w-full h-full object-cover absolute inset-0"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center bg-muted absolute inset-0">
+            <Package className="h-12 w-12 text-muted-foreground" />
           </div>
+        )}
 
-          {/* Prices */}
-          <div className="space-y-0">
-            {isPromotion && precioAnterior && (
-              <p className="text-[9px] text-muted-foreground line-through text-center">
-                {formatCurrency(precioAnterior, moneda)}
-              </p>
-            )}
-            <p className={cn('font-bold text-xl text-center leading-tight', isPromotion ? 'text-red-600' : 'text-[#00ff41]')}>
-              {formatCurrency(precio, moneda)}
+        {/* Gradient overlay for better text readability */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/70" />
+
+        {/* Product Info - Overlaid on image */}
+        <div className="absolute inset-0 p-2 flex flex-col justify-between">
+          {/* Top section - Name and Category */}
+          <div className="space-y-0.5">
+            <h3
+              className="font-bold text-sm line-clamp-2 leading-tight text-white"
+              style={{ textShadow: '0 2px 4px rgba(0,0,0,0.8), 0 0 8px rgba(0,0,0,0.6)' }}
+            >
+              {nombre}
+            </h3>
+            <p
+              className="text-[10px] font-semibold truncate text-white/90"
+              style={{ textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}
+            >
+              {categoria}
             </p>
-            {precioCompra !== undefined && (
-              <p className="text-[9px] text-muted-foreground truncate text-center">
-                C: {formatCurrency(precioCompra, moneda)}
+          </div>
+
+          {/* Bottom section - Prices and Stock */}
+          <div className="space-y-0.5">
+            {/* Prices */}
+            <div className="space-y-0">
+              {isPromotion && precioAnterior && (
+                <p
+                  className="text-[10px] text-white/80 line-through text-center font-semibold"
+                  style={{ textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}
+                >
+                  {formatCurrency(precioAnterior, moneda)}
+                </p>
+              )}
+              <p
+                className={cn('font-black text-2xl text-center leading-tight', isPromotion ? 'text-red-400' : 'text-[#00ff41]')}
+                style={{ textShadow: '0 2px 6px rgba(0,0,0,0.9), 0 0 12px rgba(0,0,0,0.7)' }}
+              >
+                {formatCurrency(precio, moneda)}
+              </p>
+              {precioCompra !== undefined && (
+                <p
+                  className="text-[10px] text-white/80 truncate text-center font-semibold"
+                  style={{ textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}
+                >
+                  C: {formatCurrency(precioCompra, moneda)}
+                </p>
+              )}
+            </div>
+
+            {/* Stock */}
+            {showStock && (
+              <p
+                className="text-[10px] text-white/90 truncate text-center font-bold"
+                style={{ textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}
+              >
+                Stock: {stock}
               </p>
             )}
           </div>
-
-          {/* Stock */}
-          {showStock && (
-            <p className="text-[9px] text-muted-foreground truncate text-center">Stock: {stock}</p>
-          )}
         </div>
+
+        {/* Badges - keep them on top */}
+        {/* Type Badge */}
+        {isPromotion && (
+          <Badge className="absolute top-1 right-1 bg-red-500 h-5 text-[10px] px-1.5 py-0 shadow-lg z-10">
+            <Tag className="h-2.5 w-2.5 mr-0.5" />
+            Promo
+          </Badge>
+        )}
+        {type === 'combo' && (
+          <Badge className="absolute top-1 right-1 bg-purple-500 h-5 text-[10px] px-1.5 py-0 shadow-lg z-10">
+            <TrendingUp className="h-2.5 w-2.5 mr-0.5" />
+            Combo
+          </Badge>
+        )}
+
+        {/* Stock Badge */}
+        {showStock && isOutOfStock && (
+          <Badge variant="destructive" className="absolute top-1 left-1 h-5 text-[10px] px-1.5 py-0 shadow-lg z-10">
+            Sin Stock
+          </Badge>
+        )}
+        {showStock && isLowStock && (
+          <Badge variant="secondary" className="absolute top-1 left-1 h-5 text-[10px] px-1.5 py-0 shadow-lg z-10">
+            Bajo
+          </Badge>
+        )}
+
+        {/* Promotion Limits Badge */}
+        {isPromotion && cantidadMinima && cantidadMinima > 1 && (
+          <Badge variant="default" className="absolute bottom-1 left-1 bg-blue-600 h-5 text-[10px] px-1.5 py-0 backdrop-blur-sm font-semibold shadow-lg z-10">
+            Mín: {cantidadMinima}
+          </Badge>
+        )}
+        {isPromotion && cantidadMaxima && (
+          <Badge variant="outline" className="absolute bottom-1 right-1 bg-background/90 h-5 text-[9px] px-1.5 py-0 backdrop-blur-sm shadow-lg z-10">
+            Máx: {cantidadMaxima}
+          </Badge>
+        )}
+        {isPromotion && limiteUsosPorVenta && limiteUsosPorVenta < 999 && !cantidadMaxima && (
+          <Badge variant="outline" className="absolute bottom-1 right-1 bg-background/90 h-5 text-[9px] px-1.5 py-0 backdrop-blur-sm shadow-lg z-10">
+            Límite: {limiteUsosPorVenta}
+          </Badge>
+        )}
       </CardContent>
     </Card>
   );

@@ -8,10 +8,12 @@
  * - '@/types/database/Personal' for staff types
  * - '@/types/database/Productos' for product types
  * - '@/types/database/Sale' for sales types
+ * - '@/types/database/SaleItem' for sale items types
  * - '@/types/database/Combos' for combo types
  */
 
 // Export all types explicitly (export * doesn't re-export 'export type')
+export type { CurrencyCode } from './currency';
 export type { RolPersonal, User, AuthState } from './database/Auth';
 export type { Club, ClubInsert, ClubUpdate } from './database/Club';
 export type { Personal, PersonalInsert, PersonalUpdate } from './database/Personal';
@@ -40,6 +42,7 @@ export type {
   PromocionFormData,
 } from './database/Promociones';
 export type { Sale, SaleInsert, SaleUpdate, SaleWithDetails, SaleFilters, MetodoPago } from './database/Sale';
+export type { SaleItem, SaleItemInsert, SaleItemUpdate, SaleItemWithDetails, ItemType } from './database/SaleItem';
 export type {
   InicioCierre,
   InicioCierreInsert,

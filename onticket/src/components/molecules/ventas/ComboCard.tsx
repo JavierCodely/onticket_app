@@ -67,74 +67,98 @@ export function ComboCard({
   return (
     <Card
       className={cn(
-        'cursor-pointer transition-all hover:shadow-lg border-2',
+        'cursor-pointer transition-all hover:shadow-lg overflow-hidden border-2',
         borderStyle ? `${borderStyle.border} ${borderStyle.shadow} ${borderStyle.glow}` : '',
         className
       )}
       onClick={onClick}
     >
-      <CardContent className="p-2">
-        {/* Image */}
-        <div className="relative aspect-square mb-1.5 rounded-md overflow-hidden bg-muted">
-          {imagen_url ? (
-            <img
-              src={imagen_url}
-              alt={nombre}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <Package className="h-6 w-6 text-muted-foreground" />
-            </div>
-          )}
+      <CardContent className="p-0 relative aspect-square">
+        {/* Background Image */}
+        {imagen_url ? (
+          <img
+            src={imagen_url}
+            alt={nombre}
+            className="w-full h-full object-cover absolute inset-0"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center bg-muted absolute inset-0">
+            <Package className="h-12 w-12 text-muted-foreground" />
+          </div>
+        )}
 
-          {/* Combo Badge */}
-          <Badge className="absolute top-0.5 right-0.5 bg-purple-500 h-4 text-[9px] px-1 py-0">
-            <TrendingUp className="h-2 w-2 mr-0.5" />
-            Combo
-          </Badge>
-          
-          {/* Limit Badge */}
-          {limiteUsosPorVenta && limiteUsosPorVenta < 999 && (
-            <Badge variant="outline" className="absolute bottom-0.5 right-0.5 bg-background/90 h-4 text-[8px] px-1 py-0 backdrop-blur-sm">
-              Máx: {limiteUsosPorVenta}
-            </Badge>
-          )}
-        </div>
+        {/* Gradient overlay for better text readability */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/70" />
 
-        {/* Combo Info */}
-        <div className="space-y-1">
-          <div>
-            <h3 className="font-semibold text-[11px] line-clamp-1 leading-tight">{nombre}</h3>
-            <p className="text-[9px] text-muted-foreground">Combo</p>
+        {/* Combo Info - Overlaid on image */}
+        <div className="absolute inset-0 p-2 flex flex-col justify-between">
+          {/* Top section - Name */}
+          <div className="space-y-0.5">
+            <h3
+              className="font-bold text-sm line-clamp-2 leading-tight text-white"
+              style={{ textShadow: '0 2px 4px rgba(0,0,0,0.8), 0 0 8px rgba(0,0,0,0.6)' }}
+            >
+              {nombre}
+            </h3>
+            <p
+              className="text-[10px] font-semibold text-purple-300"
+              style={{ textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}
+            >
+              Combo
+            </p>
           </div>
 
-          {/* Products List */}
-          {productos && productos.length > 0 && (
-            <div className="space-y-0.5 py-1 border-t border-border/50">
-              {productos.slice(0, 3).map((item, index) => (
-                item.productos && (
-                  <div key={index} className="flex items-center gap-1 text-[8px] text-muted-foreground">
-                    <span className="font-medium text-primary">{item.cantidad}x</span>
-                    <span className="truncate">{item.productos.nombre}</span>
-                  </div>
-                )
-              ))}
-              {productos.length > 3 && (
-                <p className="text-[8px] text-muted-foreground italic">
-                  +{productos.length - 3} más...
-                </p>
-              )}
-            </div>
-          )}
+          {/* Bottom section - Products and Price */}
+          <div className="space-y-1">
+            {/* Products List */}
+            {productos && productos.length > 0 && (
+              <div className="space-y-0.5 p-1.5 bg-black/40 backdrop-blur-sm rounded-md">
+                {productos.slice(0, 3).map((item, index) => (
+                  item.productos && (
+                    <div
+                      key={index}
+                      className="flex items-center gap-1 text-[9px] text-white"
+                      style={{ textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}
+                    >
+                      <span className="font-bold text-purple-300">{item.cantidad}x</span>
+                      <span className="truncate font-semibold">{item.productos.nombre}</span>
+                    </div>
+                  )
+                ))}
+                {productos.length > 3 && (
+                  <p
+                    className="text-[9px] text-white/80 italic font-semibold"
+                    style={{ textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}
+                  >
+                    +{productos.length - 3} más...
+                  </p>
+                )}
+              </div>
+            )}
 
-          {/* Price */}
-          <div className="pt-1">
-            <p className="font-bold text-base text-center leading-tight text-purple-600">
+            {/* Price */}
+            <p
+              className="font-black text-2xl text-center leading-tight text-purple-400"
+              style={{ textShadow: '0 2px 6px rgba(0,0,0,0.9), 0 0 12px rgba(0,0,0,0.7)' }}
+            >
               {formatCurrency(precio, moneda)}
             </p>
           </div>
         </div>
+
+        {/* Badges - keep them on top */}
+        {/* Combo Badge */}
+        <Badge className="absolute top-1 right-1 bg-purple-500 h-5 text-[10px] px-1.5 py-0 shadow-lg z-10">
+          <TrendingUp className="h-2.5 w-2.5 mr-0.5" />
+          Combo
+        </Badge>
+
+        {/* Limit Badge */}
+        {limiteUsosPorVenta && limiteUsosPorVenta < 999 && (
+          <Badge variant="outline" className="absolute bottom-1 right-1 bg-background/90 h-5 text-[9px] px-1.5 py-0 backdrop-blur-sm shadow-lg z-10">
+            Máx: {limiteUsosPorVenta}
+          </Badge>
+        )}
       </CardContent>
     </Card>
   );
