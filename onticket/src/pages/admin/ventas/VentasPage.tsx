@@ -92,9 +92,9 @@ export function VentasPage() {
           .select('*')
           .in('id', promocionIds);
 
-        if (usedPromociones) {
+        if (usedPromociones && usedPromociones.length > 0) {
           // Check for inactive promotions
-          const inactivePromociones = usedPromociones.filter(p => !p.activo);
+          const inactivePromociones = (usedPromociones as Promocion[]).filter(p => !p.activo);
           if (inactivePromociones.length > 0) {
             inactivePromociones.forEach(p => {
               const producto = productos.find(prod => prod.id === p.producto_id);
@@ -104,7 +104,7 @@ export function VentasPage() {
 
           // Merge with existing active promotions, avoiding duplicates
           const mergedPromociones = [...promociones];
-          for (const promo of usedPromociones) {
+          for (const promo of (usedPromociones as Promocion[])) {
             if (!mergedPromociones.find(p => p.id === promo.id)) {
               mergedPromociones.push(promo);
             }
@@ -133,7 +133,7 @@ export function VentasPage() {
 
         if (usedCombos) {
           // Check for inactive combos
-          const inactiveCombos = usedCombos.filter(c => !c.activo);
+          const inactiveCombos = (usedCombos as Combo[]).filter(c => !c.activo);
           if (inactiveCombos.length > 0) {
             inactiveCombos.forEach(c => {
               inactiveItems.push(`Combo: ${c.nombre}`);
@@ -142,7 +142,7 @@ export function VentasPage() {
 
           // Merge with existing active combos, avoiding duplicates
           const mergedCombos = [...combos];
-          for (const combo of usedCombos) {
+          for (const combo of (usedCombos as Combo[])) {
             if (!mergedCombos.find(c => c.id === combo.id)) {
               mergedCombos.push(combo);
             }
