@@ -6,9 +6,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
-import type { SaleWithDetails, SaleFilters, MetodoPago } from '@/types/database';
+import type { SaleWithDetails, SaleFilters, SaleItem } from '@/types/database';
 import type { SaleStatistics } from '@/types/ventas';
-import type { CurrencyCode } from '@/types/currency';
 
 interface UseSalesOptions {
   enableRealtime?: boolean;
@@ -52,7 +51,9 @@ export function useSales(options: UseSalesOptions = {}) {
             break;
         }
 
-        stats.total_productos_vendidos += sale.cantidad;
+        // Sum quantities from all sale_items
+        const totalCantidad = sale.sale_items?.reduce((sum, item) => sum + item.cantidad, 0) || 0;
+        stats.total_productos_vendidos += totalCantidad;
         stats.total_ventas += sale.total;
 
         return stats;
@@ -86,8 +87,11 @@ export function useSales(options: UseSalesOptions = {}) {
         .from('sale')
         .select(`
           *,
-          productos:productos(id, nombre, categoria, imagen_url),
-          personal:personal(id, nombre, apellido, rol)
+          personal:personal(id, nombre, apellido, rol),
+          sale_items:sale_items(
+            *,
+            productos:productos(id, nombre, categoria, imagen_url)
+          )
         `)
         .order('created_at', { ascending: false });
 
@@ -107,10 +111,6 @@ export function useSales(options: UseSalesOptions = {}) {
       if (filters?.moneda) {
         query = query.eq('moneda', filters.moneda);
       }
-      if (filters?.categoria && filters.categoria !== 'all') {
-        // This requires a join, so we'll filter after fetching
-        // Or we can use a more complex query
-      }
 
       const { data, error: queryError } = await query;
 
@@ -121,9 +121,12 @@ export function useSales(options: UseSalesOptions = {}) {
       // Filter by category if needed (client-side)
       let filteredData = data || [];
       if (filters?.categoria && filters.categoria !== 'all') {
-        filteredData = filteredData.filter(
-          (sale) => (sale as any).productos?.categoria === filters.categoria
-        );
+        filteredData = filteredData.filter((sale) => {
+          // Check if any sale_item has a product with the specified category
+          return (sale as any).sale_items?.some(
+            (item: any) => item.productos?.categoria === filters.categoria
+          );
+        });
       }
 
       setSales(filteredData as SaleWithDetails[]);
@@ -172,63 +175,66 @@ export function useSales(options: UseSalesOptions = {}) {
   }, [fetchSales]);
 
   /**
-   * Create a new sale
-   */
-  const createSale = useCallback(
-    async (saleData: {
-      producto_id: string;
-      personal_id: string;
-      cantidad: number;
-      precio_unitario: number;
-      subtotal: number;
-      descuento: number;
-      total: number;
-      moneda: CurrencyCode;
-      metodo_pago: MetodoPago;
-      // Currency-specific amounts
-      precio_unitario_ars: number;
-      subtotal_ars: number;
-      descuento_ars: number;
-      total_ars: number;
-      precio_unitario_usd: number;
-      subtotal_usd: number;
-      descuento_usd: number;
-      total_usd: number;
-      precio_unitario_brl: number;
-      subtotal_brl: number;
-      descuento_brl: number;
-      total_brl: number;
-    }) => {
-      if (!user?.club?.id) {
-        throw new Error('No club ID found');
-      }
-
-      const { data, error } = await supabase
-        .from('sale')
-        .insert({
-          club_id: user.club.id,
-          ...saleData,
-        } as any)
-        .select()
-        .single();
-
-      if (error) {
-        throw error;
-      }
-
-      return data;
-    },
-    [user?.club?.id]
-  );
-
-  /**
-   * Delete a sale
+   * Delete a sale (Admin only)
+   * Restores stock for all products sold
    */
   const deleteSale = useCallback(async (saleId: string) => {
-    const { error } = await supabase.from('sale').delete().eq('id', saleId);
+    // Step 1: Get all sale items BEFORE deleting them
+    const { data: saleItems, error: fetchItemsError } = await supabase
+      .from('sale_items')
+      .select('*')
+      .eq('sale_id', saleId) as { data: SaleItem[] | null, error: any };
 
-    if (error) {
-      throw error;
+    if (fetchItemsError) {
+      throw fetchItemsError;
+    }
+
+    if (!saleItems || saleItems.length === 0) {
+      throw new Error('No se encontraron items en la venta');
+    }
+
+    // Step 2: Restore stock for each item
+    // IMPORTANT: For combos, sale_items.cantidad already includes the multiplication
+    // (e.g., 1 combo of 3 beers = sale_item with cantidad=3, not cantidad=1)
+    // So we just restore item.cantidad directly for ALL item types
+    for (const item of saleItems) {
+      const { data: currentProduct } = await supabase
+        .from('productos')
+        .select('stock')
+        .eq('id', item.producto_id)
+        .single() as { data: { stock: number } | null; error: any };
+
+      if (currentProduct) {
+        const newStock = currentProduct.stock + item.cantidad;
+        const { error: updateError } = await (supabase
+          .from('productos')
+          .update as any)({ stock: newStock })
+          .eq('id', item.producto_id);
+
+        if (updateError) {
+          console.error('Error restoring stock:', updateError);
+        }
+      }
+    }
+
+    // Step 3: Delete sale_items
+    const { error: itemsError } = await supabase
+      .from('sale_items')
+      .delete()
+      .eq('sale_id', saleId);
+
+    if (itemsError) {
+      throw itemsError;
+    }
+
+    // Step 4: Delete the sale header
+    const { error: saleError } = await supabase
+      .from('sale')
+      .delete()
+      .eq('id', saleId);
+
+    if (saleError) {
+      throw saleError;
     }
 
     // Refetch after deletion
@@ -241,7 +247,6 @@ export function useSales(options: UseSalesOptions = {}) {
     loading,
     error,
     fetchSales,
-    createSale,
     deleteSale,
   };
 }

@@ -34,7 +34,10 @@ export type {
 } from './Combos';
 
 // Sale types
-export type { Sale, SaleInsert, SaleUpdate } from './Sale';
+export type { Sale, SaleInsert, SaleUpdate, SaleWithDetails, SaleFilters, MetodoPago } from './Sale';
+
+// SaleItem types
+export type { SaleItem, SaleItemInsert, SaleItemUpdate, SaleItemWithDetails, ItemType } from './SaleItem';
 
 // InicioCierre types
 export type {
