@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { ProductCard } from '@/components/molecules/ventas/ProductCard';
+import { ComboCard } from '@/components/molecules/ventas/ComboCard';
 import { Package, Tag, TrendingUp, Search } from 'lucide-react';
 import type { Producto, Promocion, Combo, CategoriaProducto } from '@/types/database';
 import type { CurrencyCode } from '@/types/currency';
@@ -199,7 +200,7 @@ export function ProductGrid({
 
       {/* Products Grid */}
       {viewMode === 'products' && (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {filteredProductos.map((producto) => {
             const precio = getProductPrice(producto);
             const precioCompra = isAdmin
@@ -229,7 +230,7 @@ export function ProductGrid({
 
       {/* Promotions Grid */}
       {viewMode === 'promotions' && (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {filteredPromociones.map((promocion) => {
             const producto = productos.find((p) => p.id === promocion.producto_id);
             if (!producto) return null;
@@ -248,6 +249,9 @@ export function ProductGrid({
                 moneda={moneda}
                 type="promotion"
                 isPromotion
+                limiteUsosPorVenta={promocion.limite_usos_por_venta}
+                cantidadMinima={promocion.cantidad_minima}
+                cantidadMaxima={promocion.cantidad_maxima}
                 onClick={() => onProductClick(producto, promocion)}
               />
             );
@@ -257,21 +261,20 @@ export function ProductGrid({
 
       {/* Combos Grid */}
       {viewMode === 'combos' && (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {filteredCombos.map((combo) => {
             const precio = getComboPrice(combo);
 
             return (
-              <ProductCard
+              <ComboCard
                 key={combo.id}
                 nombre={combo.nombre}
-                categoria="Combo"
                 precio={precio}
-                stock={999} // Combos don't have stock
+                precioARS={combo.precio_combo_ars}
                 imagen_url={combo.imagen_url}
                 moneda={moneda}
-                type="combo"
-                showStock={false}
+                productos={combo.combo_productos as any}
+                limiteUsosPorVenta={combo.limite_usos_por_venta}
                 onClick={() => onComboClick(combo)}
               />
             );
