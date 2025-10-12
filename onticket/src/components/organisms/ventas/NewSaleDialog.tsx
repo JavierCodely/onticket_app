@@ -36,7 +36,7 @@ import {
   Plus,
   Trash2
 } from 'lucide-react';
-import type { Producto, Promocion, Combo, Personal, MetodoPago, CategoriaProducto } from '@/types/database';
+import type { Producto, Promocion, ComboWithProducts, Personal, MetodoPago, CategoriaProducto } from '@/types/database';
 import type { CurrencyCode } from '@/types/currency';
 import type { CartItem } from '@/types/ventas';
 import { CURRENCIES } from '@/types/currency';
@@ -46,7 +46,7 @@ interface NewSaleDialogProps {
   onOpenChange: (open: boolean) => void;
   productos: Producto[];
   promociones: Promocion[];
-  combos: Combo[];
+  combos: ComboWithProducts[];
   empleados: Personal[];
   onSaleCreated: () => void;
   editingSale?: any | null;
@@ -366,7 +366,7 @@ export function NewSaleDialog({
     }
   };
 
-  const getComboPrice = (combo: Combo): number => {
+  const getComboPrice = (combo: ComboWithProducts): number => {
     switch (moneda) {
       case 'ARS':
         return combo.precio_combo_ars;
@@ -682,7 +682,7 @@ export function NewSaleDialog({
     }
   };
 
-  const handleComboClick = (combo: Combo) => {
+  const handleComboClick = (combo: ComboWithProducts) => {
     if (!empleadoId) {
       toast.error('Por favor selecciona un empleado primero');
       return;
@@ -707,10 +707,7 @@ export function NewSaleDialog({
     }
 
     // Validate stock for all products in the combo
-    const comboProductos = (combo as any).combo_productos as Array<{
-      cantidad: number;
-      productos: { id: string; nombre: string } | null;
-    }> | undefined;
+    const comboProductos = combo.combo_productos;
 
     if (comboProductos) {
       for (const comboItem of comboProductos) {
@@ -1032,7 +1029,7 @@ export function NewSaleDialog({
                               precioARS={precioARS}
                               imagen_url={combo.imagen_url}
                   moneda={moneda}
-                              productos={(combo as any).combo_productos || []}
+                              productos={combo.combo_productos || []}
                               limiteUsosPorVenta={combo.limite_usos_por_venta}
                               onClick={() => handleComboClick(combo)}
                             />

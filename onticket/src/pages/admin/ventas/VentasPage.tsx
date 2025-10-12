@@ -27,7 +27,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import type { Producto, Promocion, Combo, Personal, SaleFilters, SaleWithDetails } from '@/types/database';
+import type { Producto, Promocion, ComboWithProducts, Personal, SaleFilters, SaleWithDetails } from '@/types/database';
 
 export function VentasPage() {
   const { user } = useAuth();
@@ -39,7 +39,7 @@ export function VentasPage() {
   // Data for new sale dialog
   const [productos, setProductos] = useState<Producto[]>([]);
   const [promociones, setPromociones] = useState<Promocion[]>([]);
-  const [combos, setCombos] = useState<Combo[]>([]);
+  const [combos, setCombos] = useState<ComboWithProducts[]>([]);
   const [empleados, setEmpleados] = useState<Personal[]>([]);
 
   // Sales data with realtime
@@ -133,7 +133,7 @@ export function VentasPage() {
 
         if (usedCombos) {
           // Check for inactive combos
-          const inactiveCombos = (usedCombos as Combo[]).filter(c => !c.activo);
+          const inactiveCombos = (usedCombos as ComboWithProducts[]).filter(c => !c.activo);
           if (inactiveCombos.length > 0) {
             inactiveCombos.forEach(c => {
               inactiveItems.push(`Combo: ${c.nombre}`);
@@ -142,7 +142,7 @@ export function VentasPage() {
 
           // Merge with existing active combos, avoiding duplicates
           const mergedCombos = [...combos];
-          for (const combo of (usedCombos as Combo[])) {
+          for (const combo of (usedCombos as ComboWithProducts[])) {
             if (!mergedCombos.find(c => c.id === combo.id)) {
               mergedCombos.push(combo);
             }

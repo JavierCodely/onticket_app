@@ -9,15 +9,7 @@ import { cn } from '@/lib/utils';
 import { TrendingUp, Package } from 'lucide-react';
 import { formatCurrency } from '@/lib/currency-utils';
 import type { CurrencyCode } from '@/types/currency';
-
-interface ComboProduct {
-  cantidad: number;
-  productos: {
-    id: string;
-    nombre: string;
-    categoria: string;
-  } | null;
-}
+import type { ComboProducto } from '@/types/database';
 
 interface ComboCardProps {
   nombre: string;
@@ -25,7 +17,7 @@ interface ComboCardProps {
   precioARS: number; // Precio en ARS para determinar el color del borde
   imagen_url?: string | null;
   moneda: CurrencyCode;
-  productos?: ComboProduct[];
+  productos?: ComboProducto[];
   limiteUsosPorVenta?: number;
   onClick?: () => void;
   className?: string;

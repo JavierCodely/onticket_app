@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { ProductCard } from '@/components/molecules/ventas/ProductCard';
 import { ComboCard } from '@/components/molecules/ventas/ComboCard';
 import { Package, Tag, TrendingUp, Search } from 'lucide-react';
-import type { Producto, Promocion, Combo, ComboWithProducts, CategoriaProducto } from '@/types/database';
+import type { Producto, Promocion, ComboWithProducts, CategoriaProducto } from '@/types/database';
 import type { CurrencyCode } from '@/types/currency';
 
 type ViewMode = 'products' | 'promotions' | 'combos';
@@ -23,7 +23,7 @@ interface ProductGridProps {
   moneda: CurrencyCode;
   isAdmin: boolean;
   onProductClick: (producto: Producto, promocion?: Promocion) => void;
-  onComboClick: (combo: Combo) => void;
+  onComboClick: (combo: ComboWithProducts) => void;
 }
 
 const CATEGORIES: CategoriaProducto[] = [
