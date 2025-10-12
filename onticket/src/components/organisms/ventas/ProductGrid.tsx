@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { ProductCard } from '@/components/molecules/ventas/ProductCard';
 import { ComboCard } from '@/components/molecules/ventas/ComboCard';
 import { Package, Tag, TrendingUp, Search } from 'lucide-react';
-import type { Producto, Promocion, Combo, CategoriaProducto } from '@/types/database';
+import type { Producto, Promocion, Combo, ComboWithProducts, CategoriaProducto } from '@/types/database';
 import type { CurrencyCode } from '@/types/currency';
 
 type ViewMode = 'products' | 'promotions' | 'combos';
@@ -19,7 +19,7 @@ type ViewMode = 'products' | 'promotions' | 'combos';
 interface ProductGridProps {
   productos: Producto[];
   promociones: Promocion[];
-  combos: Combo[];
+  combos: ComboWithProducts[];
   moneda: CurrencyCode;
   isAdmin: boolean;
   onProductClick: (producto: Producto, promocion?: Promocion) => void;
@@ -129,7 +129,7 @@ export function ProductGrid({
     }
   };
 
-  const getComboPrice = (combo: Combo): number => {
+  const getComboPrice = (combo: ComboWithProducts): number => {
     switch (moneda) {
       case 'ARS':
         return combo.precio_combo_ars;
@@ -273,7 +273,7 @@ export function ProductGrid({
                 precioARS={combo.precio_combo_ars}
                 imagen_url={combo.imagen_url}
                 moneda={moneda}
-                productos={combo.combo_productos as any}
+                productos={combo.combo_productos}
                 limiteUsosPorVenta={combo.limite_usos_por_venta}
                 onClick={() => onComboClick(combo)}
               />
