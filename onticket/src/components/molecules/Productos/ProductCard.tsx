@@ -66,12 +66,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       <CardContent className="space-y-2 py-2 px-3">
         {/* Imagen del producto - Arriba */}
         <div className="flex justify-center pb-1">
-          <Avatar className="h-20 w-20 rounded-md">
+          <Avatar className="h-36 w-36 rounded-md">
             {producto.imagen_url ? (
               <AvatarImage src={producto.imagen_url} alt={producto.nombre} className="object-cover" />
             ) : (
               <AvatarFallback className="rounded-md bg-muted">
-                <ImageIcon className="h-8 w-8 text-muted-foreground" />
+                <ImageIcon className="h-16 w-16 text-muted-foreground" />
               </AvatarFallback>
             )}
           </Avatar>
