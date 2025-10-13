@@ -21,10 +21,11 @@ import type { SaleFilters, Personal } from '@/types/database';
 interface SalesFiltersProps {
   onFiltersChange: (filters: SaleFilters) => void;
   empleados: Personal[];
+  initialFilters?: SaleFilters;
 }
 
-export function SalesFilters({ onFiltersChange, empleados }: SalesFiltersProps) {
-  const [filters, setFilters] = useState<SaleFilters>({});
+export function SalesFilters({ onFiltersChange, empleados, initialFilters = {} }: SalesFiltersProps) {
+  const [filters, setFilters] = useState<SaleFilters>(initialFilters);
   const [isOpen, setIsOpen] = useState(false);
 
   const handleFilterChange = (key: keyof SaleFilters, value: string | undefined) => {
@@ -41,8 +42,24 @@ export function SalesFilters({ onFiltersChange, empleados }: SalesFiltersProps) 
   };
 
   const clearFilters = () => {
-    setFilters({});
-    onFiltersChange({});
+    // Reset to today's date
+    const today = new Date();
+    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0);
+    const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
+
+    const todayFilters: SaleFilters = {
+      fecha_desde: startOfDay.toISOString(),
+      fecha_hasta: endOfDay.toISOString(),
+    };
+
+    setFilters(todayFilters);
+    onFiltersChange(todayFilters);
+  };
+
+  // Helper to format ISO date to YYYY-MM-DD for date input
+  const formatDateForInput = (isoDate?: string) => {
+    if (!isoDate) return '';
+    return isoDate.split('T')[0];
   };
 
   const hasActiveFilters = Object.keys(filters).length > 0;
@@ -59,7 +76,7 @@ export function SalesFilters({ onFiltersChange, empleados }: SalesFiltersProps) 
             {hasActiveFilters && (
               <Button variant="ghost" size="sm" onClick={clearFilters}>
                 <X className="h-4 w-4 mr-1" />
-                Limpiar
+                Restablecer
               </Button>
             )}
             <Button
@@ -80,8 +97,16 @@ export function SalesFilters({ onFiltersChange, empleados }: SalesFiltersProps) 
               <Input
                 id="fecha_desde"
                 type="date"
-                value={filters.fecha_desde || ''}
-                onChange={(e) => handleFilterChange('fecha_desde', e.target.value)}
+                value={formatDateForInput(filters.fecha_desde)}
+                onChange={(e) => {
+                  const dateValue = e.target.value;
+                  if (dateValue) {
+                    const isoDate = new Date(dateValue + 'T00:00:00').toISOString();
+                    handleFilterChange('fecha_desde', isoDate);
+                  } else {
+                    handleFilterChange('fecha_desde', undefined);
+                  }
+                }}
               />
             </div>
 
@@ -91,8 +116,16 @@ export function SalesFilters({ onFiltersChange, empleados }: SalesFiltersProps) 
               <Input
                 id="fecha_hasta"
                 type="date"
-                value={filters.fecha_hasta || ''}
-                onChange={(e) => handleFilterChange('fecha_hasta', e.target.value)}
+                value={formatDateForInput(filters.fecha_hasta)}
+                onChange={(e) => {
+                  const dateValue = e.target.value;
+                  if (dateValue) {
+                    const isoDate = new Date(dateValue + 'T23:59:59').toISOString();
+                    handleFilterChange('fecha_hasta', isoDate);
+                  } else {
+                    handleFilterChange('fecha_hasta', undefined);
+                  }
+                }}
               />
             </div>
 

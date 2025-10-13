@@ -91,16 +91,16 @@ export const MultiCurrencyPriceInput: React.FC<MultiCurrencyPriceInputProps> = (
 
             {/* Profit calculation for this currency */}
             {values[lowerCode].compra > 0 && values[lowerCode].venta > 0 && (
-              <div className="mt-2 pt-2 border-t border-border space-y-1">
-                <div className="flex justify-between text-xs">
+              <div className="mt-2 pt-2 border-t border-border space-y-1.5">
+                <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Ganancia:</span>
-                  <span className="font-semibold text-green-600 dark:text-green-500">
+                  <span className="font-bold text-green-600 dark:text-green-500">
                     {currency.symbol} {(values[lowerCode].venta - values[lowerCode].compra).toFixed(2)}
                   </span>
                 </div>
-                <div className="flex justify-between text-xs">
+                <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Margen:</span>
-                  <span className="font-semibold text-blue-600 dark:text-blue-400">
+                  <span className="font-bold text-blue-600 dark:text-blue-400">
                     {formatPercentage(calculateProfitMargin(values[lowerCode].compra, values[lowerCode].venta))}
                   </span>
                 </div>

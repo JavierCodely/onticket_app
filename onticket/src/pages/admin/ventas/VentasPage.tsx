@@ -33,7 +33,19 @@ export function VentasPage() {
   const { user } = useAuth();
   const [showNewSaleDialog, setShowNewSaleDialog] = useState(false);
   const [editingSale, setEditingSale] = useState<SaleWithDetails | null>(null);
-  const [filters, setFilters] = useState<SaleFilters>({});
+
+  // Initialize filters with today's date range
+  const [filters, setFilters] = useState<SaleFilters>(() => {
+    const today = new Date();
+    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0);
+    const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
+
+    return {
+      fecha_desde: startOfDay.toISOString(),
+      fecha_hasta: endOfDay.toISOString(),
+    };
+  });
+
   const [expandedSales, setExpandedSales] = useState<Set<string>>(new Set());
 
   // Data for new sale dialog
@@ -341,7 +353,7 @@ export function VentasPage() {
         </div>
 
         {/* Filters */}
-        <SalesFilters onFiltersChange={setFilters} empleados={empleados} />
+        <SalesFilters onFiltersChange={setFilters} empleados={empleados} initialFilters={filters} />
 
         {/* Sales Table */}
         <Card>
