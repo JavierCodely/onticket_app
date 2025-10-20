@@ -18,6 +18,8 @@ interface CreateSaleParams {
   totalConDescuentoAdicional: number;
   moneda: CurrencyCode;
   metodoPago: MetodoPago;
+  montoEfectivo?: number; // Only used when metodoPago = 'mixto'
+  montoTransferencia?: number; // Only used when metodoPago = 'mixto'
 }
 
 export async function createSaleWithItems(params: CreateSaleParams) {
@@ -31,10 +33,20 @@ export async function createSaleWithItems(params: CreateSaleParams) {
     totalConDescuentoAdicional,
     moneda,
     metodoPago,
+    montoEfectivo = 0,
+    montoTransferencia = 0,
   } = params;
 
   // Exchange rates (would come from API in real implementation)
   const exchangeRates = { ARS: 1, USD: 1, BRL: 1 };
+
+  console.log('🔍 DEBUG createSaleWithItems - Input params:', {
+    metodoPago,
+    montoEfectivo,
+    montoTransferencia,
+    totalConDescuentoAdicional,
+    suma: montoEfectivo + montoTransferencia,
+  });
 
   // === STEP 1: Create sale header ===
   const saleHeaderData = {
@@ -45,6 +57,8 @@ export async function createSaleWithItems(params: CreateSaleParams) {
     total: totalConDescuentoAdicional,
     moneda,
     metodo_pago: metodoPago,
+    monto_efectivo: montoEfectivo,
+    monto_transferencia: montoTransferencia,
     // Multi-currency totals
     subtotal_ars: moneda === 'ARS' ? subtotal : subtotal * exchangeRates.ARS,
     descuento_ars: moneda === 'ARS' ? (descuentoTotal + descuentoAdicional) : (descuentoTotal + descuentoAdicional) * exchangeRates.ARS,
@@ -56,6 +70,15 @@ export async function createSaleWithItems(params: CreateSaleParams) {
     descuento_brl: moneda === 'BRL' ? (descuentoTotal + descuentoAdicional) : (descuentoTotal + descuentoAdicional) * exchangeRates.BRL,
     total_brl: moneda === 'BRL' ? totalConDescuentoAdicional : totalConDescuentoAdicional * exchangeRates.BRL,
   };
+
+  console.log('🔍 DEBUG createSaleWithItems - Sale header data:', {
+    total: saleHeaderData.total,
+    metodo_pago: saleHeaderData.metodo_pago,
+    monto_efectivo: saleHeaderData.monto_efectivo,
+    monto_transferencia: saleHeaderData.monto_transferencia,
+    suma: saleHeaderData.monto_efectivo + saleHeaderData.monto_transferencia,
+    diferencia: Math.abs((saleHeaderData.monto_efectivo + saleHeaderData.monto_transferencia) - saleHeaderData.total),
+  });
 
   const { data: saleHeaderResult, error: saleHeaderError } = await supabase
     .from('sale')

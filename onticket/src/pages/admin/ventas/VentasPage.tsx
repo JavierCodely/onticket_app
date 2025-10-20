@@ -3,7 +3,7 @@
  * Complete sales management with realtime updates
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, Fragment } from 'react';
 import { AdminLayout } from '@/components/templates/AdminLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -392,8 +392,8 @@ export function VentasPage() {
                     const totalQuantity = sale.sale_items?.reduce((sum, item) => sum + item.cantidad, 0) || 0;
 
                     return (
-                      <>
-                        <TableRow key={sale.id} className="h-16 hover:bg-muted/50 transition-colors">
+                      <Fragment key={sale.id}>
+                        <TableRow className="h-16 hover:bg-muted/50 transition-colors">
                           <TableCell>
                             <Button
                               variant="ghost"
@@ -458,16 +458,16 @@ export function VentasPage() {
                           )}
                         </TableRow>
                         {isExpanded && sale.sale_items && sale.sale_items.length > 0 && (
-                          <TableRow key={`${sale.id}-details`}>
+                          <TableRow>
                             <TableCell colSpan={user?.personal?.rol === 'Admin' ? 8 : 7} className="bg-muted/30 p-0">
                               <div className="p-4">
                                 <h4 className="font-semibold text-sm mb-3 text-muted-foreground">
                                   Detalles de la venta:
                                 </h4>
                                 <div className="space-y-2">
-                                  {sale.sale_items.map((item, idx) => (
+                                  {sale.sale_items.map((item) => (
                                     <div
-                                      key={idx}
+                                      key={item.id}
                                       className="flex items-center justify-between p-3 bg-background rounded-md border"
                                     >
                                       <div className="flex items-center gap-3">
@@ -520,7 +520,7 @@ export function VentasPage() {
                             </TableCell>
                           </TableRow>
                         )}
-                      </>
+                      </Fragment>
                     );
                   })}
                 </TableBody>

@@ -112,6 +112,9 @@ export function NewSaleDialog({
   const [descuentoAdicional, setDescuentoAdicional] = useState<number>(0);
   const [descuentoInput, setDescuentoInput] = useState<string>('');
   const [tipoDescuento, setTipoDescuento] = useState<'porcentaje' | 'monto'>('porcentaje');
+  const [montoTransferencia, setMontoTransferencia] = useState<number>(0);
+  const [montoTransferenciaInput, setMontoTransferenciaInput] = useState<string>('');
+  const [montoTransferenciaError, setMontoTransferenciaError] = useState<string>('');
   const [realtimeStock, setRealtimeStock] = useState<Map<string, number>>(new Map());
 
   // Get the selected employee's role to determine pricing
@@ -131,6 +134,14 @@ export function NewSaleDialog({
         setEmpleado(editingSale.personal_id || null);
         changeMetodoPago(editingSale.metodo_pago || 'efectivo');
         changeCurrency(editingSale.moneda || 'ARS');
+
+        // Load mixed payment amounts if método is 'mixto'
+        if (editingSale.metodo_pago === 'mixto') {
+          const montoTransf = editingSale.monto_transferencia || 0;
+          setMontoTransferencia(montoTransf);
+          setMontoTransferenciaInput(montoTransf.toString());
+          setMontoTransferenciaError('');
+        }
 
         // Pre-load cart items from the sale FIRST
         clearCart();
@@ -247,6 +258,9 @@ export function NewSaleDialog({
         setDescuentoAdicional(0);
         setDescuentoInput('');
         setTipoDescuento('porcentaje');
+        setMontoTransferencia(0);
+        setMontoTransferenciaInput('');
+        setMontoTransferenciaError('');
       }
     }
   }, [open, clearCart, setEmpleado, productos, promociones, combos, editingSale, addProduct, addCombo, changeMetodoPago, changeCurrency, autoSelectCurrentUser, user, empleados]);
@@ -264,6 +278,15 @@ export function NewSaleDialog({
       toast.info('Carrito vaciado. Los precios dependen del rol del empleado seleccionado.');
     }
   }, [empleadoId, editingSale]);
+
+  // Reset monto transferencia when payment method changes away from 'mixto'
+  useEffect(() => {
+    if (metodoPago !== 'mixto') {
+      setMontoTransferencia(0);
+      setMontoTransferenciaInput('');
+      setMontoTransferenciaError('');
+    }
+  }, [metodoPago]);
 
   // Subscribe to realtime stock updates
   useEffect(() => {
@@ -317,6 +340,24 @@ export function NewSaleDialog({
   const totalConDescuentoAdicional = useMemo(() => {
     return Math.max(0, total - descuentoAdicional);
   }, [total, descuentoAdicional]);
+
+  // Calculate monto efectivo for mixed payment
+  const montoEfectivo = useMemo(() => {
+    if (metodoPago !== 'mixto') return 0;
+    return Math.max(0, totalConDescuentoAdicional - montoTransferencia);
+  }, [metodoPago, totalConDescuentoAdicional, montoTransferencia]);
+
+  // When total changes, validate if montoTransferencia exceeds new total
+  useEffect(() => {
+    if (metodoPago === 'mixto' && montoTransferencia > 0) {
+      if (montoTransferencia > totalConDescuentoAdicional) {
+        // Adjust to new total automatically
+        setMontoTransferencia(totalConDescuentoAdicional);
+        setMontoTransferenciaInput(totalConDescuentoAdicional.toFixed(2));
+        toast.info(`El monto de transferencia fue ajustado al nuevo total: ${formatCurrency(totalConDescuentoAdicional, moneda)}`);
+      }
+    }
+  }, [totalConDescuentoAdicional, metodoPago, montoTransferencia, moneda]);
 
   // Apply additional discount
   const handleAplicarDescuento = () => {
@@ -754,6 +795,38 @@ export function NewSaleDialog({
       return;
     }
 
+    // Validate mixed payment
+    if (metodoPago === 'mixto') {
+      if (montoTransferenciaError) {
+        toast.error('Corrige el error en el monto de transferencia antes de continuar');
+        return;
+      }
+
+      if (montoTransferencia === 0) {
+        toast.error('Debes ingresar un monto de transferencia mayor a 0 para el método de pago mixto');
+        return;
+      }
+
+      const suma = montoEfectivo + montoTransferencia;
+      const diferencia = Math.abs(suma - totalConDescuentoAdicional);
+
+      console.log('🔍 DEBUG Mixed Payment:', {
+        montoEfectivo,
+        montoTransferencia,
+        suma,
+        totalConDescuentoAdicional,
+        diferencia,
+      });
+
+      // Allow small rounding differences (0.01)
+      if (diferencia > 0.01) {
+        toast.error(
+          `La suma de efectivo (${formatCurrency(montoEfectivo, moneda)}) + transferencia (${formatCurrency(montoTransferencia, moneda)}) debe ser igual al total (${formatCurrency(totalConDescuentoAdicional, moneda)})`
+        );
+        return;
+      }
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -763,6 +836,13 @@ export function NewSaleDialog({
       }
 
       // Create the new/updated sale
+      console.log('🔍 DEBUG Before calling createSaleWithItems:', {
+        metodoPago,
+        montoEfectivo: metodoPago === 'mixto' ? montoEfectivo : 0,
+        montoTransferencia: metodoPago === 'mixto' ? montoTransferencia : 0,
+        totalConDescuentoAdicional,
+      });
+
       await createSaleWithItems({
         clubId: user.club.id,
         personalId: empleadoId,
@@ -774,6 +854,8 @@ export function NewSaleDialog({
         totalConDescuentoAdicional,
         moneda,
         metodoPago,
+        montoEfectivo: metodoPago === 'mixto' ? montoEfectivo : 0,
+        montoTransferencia: metodoPago === 'mixto' ? montoTransferencia : 0,
       });
 
       toast.success(editingSale ? 'Venta actualizada con éxito' : 'Venta realizada con éxito');
@@ -873,6 +955,8 @@ export function NewSaleDialog({
                   <option value="transferencia">🏦 Transferencia</option>
                   <option value="tarjeta">💳 Tarjeta</option>
                   <option value="billetera_virtual">📱 Billetera</option>
+                  <option value="mixto">💵🏦 Mixto</option>
+                  <option value="tarjeta_vip">💎 Tarjeta VIP</option>
                 </select>
               </div>
 
@@ -1354,6 +1438,84 @@ export function NewSaleDialog({
                         </Button>
                       </div>
                     </div>
+
+                    {/* Monto Transferencia Input - Solo visible cuando metodo_pago = 'mixto' */}
+                    {metodoPago === 'mixto' && (
+                      <div className="space-y-1.5">
+                        <Label htmlFor="monto-transferencia" className="text-base md:text-lg font-semibold">
+                          Monto Transferencia
+                        </Label>
+                        <div className="flex gap-2">
+                          <Input
+                            id="monto-transferencia"
+                            type="number"
+                            min="0"
+                            max={totalConDescuentoAdicional}
+                            step="0.01"
+                            value={montoTransferenciaInput}
+                            onChange={(e) => {
+                              const inputValue = e.target.value;
+
+                              // Si está vacío, permitir borrar
+                              if (inputValue === '') {
+                                setMontoTransferenciaInput('');
+                                setMontoTransferencia(0);
+                                setMontoTransferenciaError('');
+                                return;
+                              }
+
+                              const numValue = parseFloat(inputValue);
+
+                              // Si no es un número válido, no hacer nada
+                              if (isNaN(numValue)) {
+                                return;
+                              }
+
+                              // Validar que no exceda el total
+                              if (numValue > totalConDescuentoAdicional) {
+                                // Mostrar error temporalmente
+                                setMontoTransferenciaError(`No puedes superar el total de ${formatCurrency(totalConDescuentoAdicional, moneda)}`);
+
+                                // Ocultar el error después de 2 segundos
+                                setTimeout(() => {
+                                  setMontoTransferenciaError('');
+                                }, 2000);
+
+                                // NO actualizar el valor del input (mantener el anterior)
+                                return;
+                              }
+
+                              // Si el valor es válido, actualizar
+                              setMontoTransferenciaInput(inputValue);
+                              setMontoTransferencia(numValue);
+                              setMontoTransferenciaError('');
+                            }}
+                            placeholder="0.00"
+                            className={`h-16 text-2xl font-bold flex-1 ${montoTransferenciaError ? 'border-red-500 border-2' : ''}`}
+                            disabled={isSubmitting}
+                          />
+                          <div className="flex items-center px-4 bg-muted rounded-md border-2 border-input">
+                            <span className="text-2xl font-bold">{moneda}</span>
+                          </div>
+                        </div>
+
+                        {/* Error message in red */}
+                        {montoTransferenciaError && (
+                          <div className="flex items-center gap-2 text-red-600 text-sm font-semibold bg-red-50 dark:bg-red-950/20 p-2 rounded-md border border-red-200 dark:border-red-800">
+                            <span className="text-red-600">⚠</span>
+                            <span>{montoTransferenciaError}</span>
+                          </div>
+                        )}
+
+                        {/* Show effective amount when transfer amount is valid */}
+                        {montoTransferencia > 0 && !montoTransferenciaError && (
+                          <div className="flex justify-between text-sm text-muted-foreground mt-1 px-1">
+                            <span>Efectivo a pagar:</span>
+                            <span className="font-bold text-xl text-foreground">{formatCurrency(montoEfectivo, moneda)}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     {descuentoTotal > 0 && (
                       <div className="flex justify-between text-base text-green-600">
