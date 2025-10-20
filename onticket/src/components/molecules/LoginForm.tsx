@@ -65,11 +65,11 @@ export const LoginForm: React.FC<LoginFormProps> = ({
   });
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       {/* Global error message */}
       {error && (
         <div
-          className="bg-red-50 border border-red-500 text-red-700 px-4 py-3 rounded-md text-sm font-medium"
+          className="bg-red-50 border border-red-500 text-red-700 px-5 py-4 rounded-md text-base font-medium"
           role="alert"
         >
           {error}
@@ -88,6 +88,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
           ...register('email'),
           autoComplete: 'email',
           disabled: isSubmitting,
+          className: "h-12 text-base"
         }}
       />
 
@@ -103,18 +104,19 @@ export const LoginForm: React.FC<LoginFormProps> = ({
           ...register('password'),
           autoComplete: 'current-password',
           disabled: isSubmitting,
+          className: "h-12 text-base"
         }}
       />
 
       {/* Submit button */}
       <Button
         type="submit"
-        className="w-full"
+        className="w-full h-12 text-base font-semibold"
         disabled={isSubmitting}
       >
         {isSubmitting ? (
           <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
             Iniciando sesión...
           </>
         ) : (

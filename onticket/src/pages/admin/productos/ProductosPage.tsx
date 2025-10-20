@@ -141,7 +141,11 @@ export const ProductosPage: React.FC = () => {
             {productos.length > 0 && (
               <Button
                 variant="outline"
-                onClick={() => exportProductsToCSV(productos, `productos-${new Date().toISOString().split('T')[0]}.csv`)}
+                onClick={() => exportProductsToCSV(
+                  productos,
+                  `productos-${new Date().toISOString().split('T')[0]}.csv`,
+                  defaultCurrency
+                )}
               >
                 <Download className="h-4 w-4 mr-2" />
                 Exportar CSV

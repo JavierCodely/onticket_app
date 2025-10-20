@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Read(//c/Users/Agus/Desktop/onticket/supabase/migrations/updates/**)",
-      "Read(//c/Users/Agus/Desktop/onticket/supabase/migrations/**)"
+      "Read(//c/Users/Agus/Desktop/onticket/supabase/migrations/**)",
+      "Bash(mv:*)"
     ],
     "deny": [],
     "ask": []

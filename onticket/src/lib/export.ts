@@ -3,17 +3,23 @@
  */
 
 import type { Producto, InicioCierre } from '@/types/database';
+import type { CurrencyCode } from '@/types/currency';
+import { getPriceForCurrency } from './currency-utils';
 
 /**
  * Export products to CSV file
  */
-export function exportProductsToCSV(productos: Producto[], filename: string = 'productos.csv') {
-  // Define CSV headers
+export function exportProductsToCSV(
+  productos: Producto[],
+  filename: string = 'productos.csv',
+  currency: CurrencyCode = 'ARS'
+) {
+  // Define CSV headers with currency
   const headers = [
     'Nombre',
     'Categoría',
-    'Precio Compra',
-    'Precio Venta',
+    `Precio Compra (${currency})`,
+    `Precio Venta (${currency})`,
     'Stock',
     'Ganancia %',
     'Ganancia Unitaria',
@@ -23,20 +29,25 @@ export function exportProductsToCSV(productos: Producto[], filename: string = 'p
 
   // Convert products to CSV rows
   const rows = productos.map((producto) => {
-    const gananciaUnitaria = producto.precio_venta - producto.precio_compra;
+    // Get prices for selected currency
+    const precioCompra = getPriceForCurrency(producto, currency, 'compra');
+    const precioVenta = getPriceForCurrency(producto, currency, 'venta');
+    const stock = Number(producto.stock) || 0;
+
+    const gananciaUnitaria = precioVenta - precioCompra;
     const gananciaPorcentaje =
-      producto.precio_compra === 0
+      precioCompra === 0
         ? 0
-        : ((producto.precio_venta - producto.precio_compra) / producto.precio_compra) * 100;
-    const valorStockCompra = producto.precio_compra * producto.stock;
-    const valorStockVenta = producto.precio_venta * producto.stock;
+        : ((precioVenta - precioCompra) / precioCompra) * 100;
+    const valorStockCompra = precioCompra * stock;
+    const valorStockVenta = precioVenta * stock;
 
     return [
-      producto.nombre,
-      producto.categoria,
-      producto.precio_compra.toFixed(2),
-      producto.precio_venta.toFixed(2),
-      producto.stock.toString(),
+      producto.nombre || '',
+      producto.categoria || '',
+      precioCompra.toFixed(2),
+      precioVenta.toFixed(2),
+      stock.toString(),
       gananciaPorcentaje.toFixed(2),
       gananciaUnitaria.toFixed(2),
       valorStockCompra.toFixed(2),
@@ -52,8 +63,12 @@ export function exportProductsToCSV(productos: Producto[], filename: string = 'p
     ),
   ].join('\n');
 
+  // Add BOM (Byte Order Mark) for proper UTF-8 encoding in Excel
+  const BOM = '\uFEFF';
+  const csvWithBOM = BOM + csvContent;
+
   // Create blob and download
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const blob = new Blob([csvWithBOM], { type: 'text/csv;charset=utf-8;' });
   const link = document.createElement('a');
   const url = URL.createObjectURL(blob);
 

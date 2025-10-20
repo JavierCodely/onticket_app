@@ -63,7 +63,7 @@ export function ProductCard({
         {/* Product Name Header - Above Image */}
         <div className="bg-black p-2 border-b border-white/10">
           <h3
-            className="font-black text-sm line-clamp-1 leading-tight text-center"
+            className="font-black text-lg line-clamp-1 leading-tight text-center"
             style={{
               color: '#ffffff',
               textShadow: '0 0 10px rgba(255,255,255,0.8), 0 0 20px rgba(255,255,255,0.6), 0 0 30px rgba(255,255,255,0.4)'
@@ -84,7 +84,7 @@ export function ProductCard({
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-muted absolute inset-0">
-              <Package className="h-12 w-12 text-muted-foreground" />
+              <Package className="h-16 w-16 text-muted-foreground" />
             </div>
           )}
 
@@ -92,9 +92,9 @@ export function ProductCard({
           <div className="absolute inset-0 bg-gradient-to-b from-black/50 to-transparent" />
 
           {/* Category - Overlaid on image */}
-          <div className="absolute top-0 left-0 right-0 p-3">
+          <div className="absolute top-0 left-0 right-0 p-2">
             <p
-              className="text-xs font-semibold truncate text-white/90"
+              className="text-sm font-bold truncate text-white/90"
               style={{ textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}
             >
               {categoria}
@@ -104,43 +104,43 @@ export function ProductCard({
           {/* Badges */}
           {/* Type Badge */}
           {isPromotion && (
-            <Badge className="absolute top-1 right-1 bg-red-500 h-5 text-[10px] px-1.5 py-0 shadow-lg z-10">
-              <Tag className="h-2.5 w-2.5 mr-0.5" />
+            <Badge className="absolute top-2 right-2 bg-red-500 h-6 text-xs px-2 py-0.5 shadow-lg z-10">
+              <Tag className="h-3 w-3 mr-1" />
               Promo
             </Badge>
           )}
           {type === 'combo' && (
-            <Badge className="absolute top-1 right-1 bg-purple-500 h-5 text-[10px] px-1.5 py-0 shadow-lg z-10">
-              <TrendingUp className="h-2.5 w-2.5 mr-0.5" />
+            <Badge className="absolute top-2 right-2 bg-purple-500 h-6 text-xs px-2 py-0.5 shadow-lg z-10">
+              <TrendingUp className="h-3 w-3 mr-1" />
               Combo
             </Badge>
           )}
 
           {/* Stock Badge */}
           {showStock && isOutOfStock && (
-            <Badge variant="destructive" className="absolute top-1 left-1 h-5 text-[10px] px-1.5 py-0 shadow-lg z-10">
+            <Badge variant="destructive" className="absolute top-2 left-2 h-6 text-xs px-2 py-0.5 shadow-lg z-10">
               Sin Stock
             </Badge>
           )}
           {showStock && isLowStock && (
-            <Badge variant="secondary" className="absolute top-1 left-1 h-5 text-[10px] px-1.5 py-0 shadow-lg z-10">
+            <Badge variant="secondary" className="absolute top-2 left-2 h-6 text-xs px-2 py-0.5 shadow-lg z-10">
               Bajo
             </Badge>
           )}
 
           {/* Promotion Limits Badge */}
           {isPromotion && cantidadMinima && cantidadMinima > 1 && (
-            <Badge variant="default" className="absolute top-8 left-1 bg-blue-600 h-5 text-[10px] px-1.5 py-0 backdrop-blur-sm font-semibold shadow-lg z-10">
+            <Badge variant="default" className="absolute top-10 left-2 bg-blue-600 h-6 text-xs px-2 py-0.5 backdrop-blur-sm font-semibold shadow-lg z-10">
               Mín: {cantidadMinima}
             </Badge>
           )}
           {isPromotion && cantidadMaxima && (
-            <Badge variant="outline" className="absolute top-8 right-1 bg-background/90 h-5 text-[9px] px-1.5 py-0 backdrop-blur-sm shadow-lg z-10">
+            <Badge variant="outline" className="absolute top-10 right-2 bg-background/90 h-6 text-xs px-2 py-0.5 backdrop-blur-sm shadow-lg z-10">
               Máx: {cantidadMaxima}
             </Badge>
           )}
           {isPromotion && limiteUsosPorVenta && limiteUsosPorVenta < 999 && !cantidadMaxima && (
-            <Badge variant="outline" className="absolute top-8 right-1 bg-background/90 h-5 text-[9px] px-1.5 py-0 backdrop-blur-sm shadow-lg z-10">
+            <Badge variant="outline" className="absolute top-10 right-2 bg-background/90 h-6 text-xs px-2 py-0.5 backdrop-blur-sm shadow-lg z-10">
               Límite: {limiteUsosPorVenta}
             </Badge>
           )}
@@ -149,20 +149,29 @@ export function ProductCard({
         {/* Price and Stock Info - Below Image */}
         <div className="bg-black p-2 border-t border-white/10 space-y-0.5">
           {/* Prices */}
-          <div className="space-y-0">
+          <div className="space-y-0.5">
+            {/* Discount Percentage - Only for promotions */}
+            {isPromotion && precioAnterior && precioAnterior > precio && (
+              <p
+                className="text-lg font-black text-center text-green-400"
+                style={{ textShadow: '0 0 12px rgba(34,197,94,0.8), 0 0 24px rgba(34,197,94,0.6)' }}
+              >
+                {Math.round(((precioAnterior - precio) / precioAnterior) * 100)}% OFF
+              </p>
+            )}
             {isPromotion && precioAnterior && (
               <p className="text-xs text-white/80 line-through text-center font-semibold">
                 {formatCurrency(precioAnterior, moneda)}
               </p>
             )}
             <p
-              className={cn('font-black text-lg text-center leading-tight', isPromotion ? 'text-red-400' : 'text-[#00ff41]')}
-              style={{ textShadow: '0 2px 6px rgba(0,0,0,0.9), 0 0 12px rgba(0,0,0,0.7)' }}
+              className={cn('font-black text-2xl text-center leading-tight', isPromotion ? 'text-red-400' : 'text-[#00ff41]')}
+              style={{ textShadow: '0 2px 10px rgba(0,0,0,0.9), 0 0 20px rgba(0,0,0,0.7)' }}
             >
               {formatCurrency(precio, moneda)}
             </p>
             {precioCompra !== undefined && (
-              <p className="text-[10px] text-white/80 truncate text-center font-semibold">
+              <p className="text-xs text-white/80 truncate text-center font-semibold">
                 C: {formatCurrency(precioCompra, moneda)}
               </p>
             )}
@@ -170,7 +179,7 @@ export function ProductCard({
 
           {/* Stock */}
           {showStock && (
-            <p className="text-xs text-white/90 truncate text-center font-bold">
+            <p className="text-sm text-white/90 truncate text-center font-bold">
               Stock: {stock}
             </p>
           )}

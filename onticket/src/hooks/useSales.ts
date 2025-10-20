@@ -140,7 +140,7 @@ export function useSales(options: UseSalesOptions = {}) {
   }, [user?.club?.id, filters, calculateStatistics]);
 
   /**
-   * Subscribe to realtime updates
+   * Subscribe to realtime updates for sale and sale_items tables
    */
   useEffect(() => {
     if (!enableRealtime || !user?.club?.id) return;
@@ -156,7 +156,21 @@ export function useSales(options: UseSalesOptions = {}) {
           filter: `club_id=eq.${user.club.id}`,
         },
         () => {
-          // Refetch sales when changes occur
+          // Refetch sales when changes occur in sale table
+          fetchSales();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'sale_items',
+        },
+        () => {
+          // Refetch sales when changes occur in sale_items table
+          // Note: We listen to all sale_items changes, but filtering happens
+          // on the sale table via RLS policies
           fetchSales();
         }
       )

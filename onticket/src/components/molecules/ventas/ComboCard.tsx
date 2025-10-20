@@ -14,6 +14,7 @@ import type { ComboProducto } from '@/types/database';
 interface ComboCardProps {
   nombre: string;
   precio: number;
+  precioReal?: number; // Precio real (sin descuento) para calcular % de ahorro
   precioARS: number; // Precio en ARS para determinar el color del borde
   imagen_url?: string | null;
   moneda: CurrencyCode;
@@ -26,6 +27,7 @@ interface ComboCardProps {
 export function ComboCard({
   nombre,
   precio,
+  precioReal,
   precioARS,
   imagen_url,
   moneda,
@@ -69,7 +71,7 @@ export function ComboCard({
         {/* Combo Name Header - Above Image */}
         <div className="bg-black p-2 border-b border-purple-500/30">
           <h3
-            className="font-black text-sm line-clamp-1 leading-tight text-center"
+            className="font-black text-lg line-clamp-1 leading-tight text-center"
             style={{
               color: '#ffffff',
               textShadow: '0 0 10px rgba(255,255,255,0.8), 0 0 20px rgba(255,255,255,0.6), 0 0 30px rgba(255,255,255,0.4)'
@@ -90,7 +92,7 @@ export function ComboCard({
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-muted absolute inset-0">
-              <Package className="h-12 w-12 text-muted-foreground" />
+              <Package className="h-16 w-16 text-muted-foreground" />
             </div>
           )}
 
@@ -98,9 +100,9 @@ export function ComboCard({
           <div className="absolute inset-0 bg-gradient-to-b from-black/50 to-transparent" />
 
           {/* Combo label - Overlaid on image */}
-          <div className="absolute top-0 left-0 right-0 p-3">
+          <div className="absolute top-0 left-0 right-0 p-2">
             <p
-              className="text-xs font-semibold text-purple-300"
+              className="text-sm font-bold text-purple-300"
               style={{ textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}
             >
               Combo
@@ -109,21 +111,21 @@ export function ComboCard({
 
           {/* Badges */}
           {/* Combo Badge */}
-          <Badge className="absolute top-1 right-1 bg-purple-500 h-5 text-[10px] px-1.5 py-0 shadow-lg z-10">
-            <TrendingUp className="h-2.5 w-2.5 mr-0.5" />
+          <Badge className="absolute top-2 right-2 bg-purple-500 h-6 text-xs px-2 py-0.5 shadow-lg z-10">
+            <TrendingUp className="h-3 w-3 mr-1" />
             Combo
           </Badge>
 
           {/* Limit Badge */}
           {limiteUsosPorVenta && limiteUsosPorVenta < 999 && (
-            <Badge variant="outline" className="absolute top-8 right-1 bg-background/90 h-5 text-[9px] px-1.5 py-0 backdrop-blur-sm shadow-lg z-10">
+            <Badge variant="outline" className="absolute top-10 right-2 bg-background/90 h-6 text-xs px-2 py-0.5 backdrop-blur-sm shadow-lg z-10">
               Máx: {limiteUsosPorVenta}
             </Badge>
           )}
         </div>
 
         {/* Products and Price Info - Below Image */}
-        <div className="bg-black p-2 border-t border-purple-500/30 space-y-1">
+        <div className="bg-black p-2 border-t border-purple-500/30 space-y-0.5">
           {/* Products List */}
           {productos && productos.length > 0 && (
             <div className="space-y-0.5">
@@ -131,25 +133,35 @@ export function ComboCard({
                 item.productos && (
                   <div
                     key={index}
-                    className="flex items-center gap-1 text-[10px] text-white"
+                    className="flex items-center gap-1.5 text-xs text-white"
                   >
-                    <span className="font-bold text-purple-300">{item.cantidad}x</span>
+                    <span className="font-bold text-purple-300 text-sm">{item.cantidad}x</span>
                     <span className="truncate font-semibold">{item.productos.nombre}</span>
                   </div>
                 )
               ))}
               {productos.length > 2 && (
-                <p className="text-[10px] text-white/80 italic font-semibold">
+                <p className="text-xs text-white/80 italic font-semibold">
                   +{productos.length - 2} más...
                 </p>
               )}
             </div>
           )}
 
+          {/* Discount Percentage - Show if precioReal is provided */}
+          {precioReal && precioReal > precio && (
+            <p
+              className="text-lg font-black text-center text-green-400"
+              style={{ textShadow: '0 0 12px rgba(34,197,94,0.8), 0 0 24px rgba(34,197,94,0.6)' }}
+            >
+              {Math.round(((precioReal - precio) / precioReal) * 100)}% OFF
+            </p>
+          )}
+
           {/* Price */}
           <p
-            className="font-black text-lg text-center leading-tight text-purple-400"
-            style={{ textShadow: '0 2px 6px rgba(0,0,0,0.9), 0 0 12px rgba(0,0,0,0.7)' }}
+            className="font-black text-2xl text-center leading-tight text-purple-400"
+            style={{ textShadow: '0 2px 10px rgba(0,0,0,0.9), 0 0 20px rgba(0,0,0,0.7)' }}
           >
             {formatCurrency(precio, moneda)}
           </p>
