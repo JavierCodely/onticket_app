@@ -33,6 +33,8 @@ const ConfiguracionesPage = lazy(() => import('@/pages/admin/configuraciones/Con
 const CombosPage = lazy(() => import('@/pages/admin/combos/CombosPage').then(m => ({ default: m.CombosPage })));
 const PromocionesPage = lazy(() => import('@/pages/admin/promociones/PromocionesPage').then(m => ({ default: m.PromocionesPage })));
 const BartenderDashboard = lazy(() => import('@/pages/bartender/dashboard/DashboardPage').then(m => ({ default: m.DashboardPage })));
+// TODO: Create VentasPage for bartender role
+// const BartenderVentasPage = lazy(() => import('@/pages/bartender/ventas/VentasPage').then(m => ({ default: m.VentasPage })));
 
 export const ProtectedAppWrapper: React.FC = () => {
   return (
@@ -82,6 +84,8 @@ export const ProtectedAppWrapper: React.FC = () => {
                 <Suspense fallback={<LoadingFallback />}>
                   <Routes>
                     <Route path="/" element={<BartenderDashboard />} />
+                    {/* TODO: Uncomment when VentasPage is created */}
+                    {/* <Route path="ventas" element={<BartenderVentasPage />} /> */}
                     <Route path="*" element={<Navigate to="/bartender" replace />} />
                   </Routes>
                 </Suspense>

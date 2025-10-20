@@ -1,32 +1,19 @@
 /**
  * Bartender Dashboard Page
- * Main dashboard for Bartender role users
- *
- * Features:
- * - View available products
- * - Register sales
- * - View sales history
+ * Simple placeholder page indicating development in progress
  */
 
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
-import {
-  LogOut,
-  User,
-  Shield,
-  Building2,
-  Package,
-  ShoppingCart,
-  TrendingUp
-} from 'lucide-react';
+import { LogOut, Shield, Construction } from 'lucide-react';
 
 /**
  * Bartender Dashboard component
- * Provides bartender-specific features and overview
+ * Shows development placeholder
  */
 export const DashboardPage: React.FC = () => {
   const { user, signOut } = useAuth();
@@ -67,138 +54,22 @@ export const DashboardPage: React.FC = () => {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
-        <div className="space-y-6">
-          {/* Welcome Card */}
-          <Card className="bg-primary text-primary-foreground border-0">
-            <CardContent className="pt-6">
+        <div className="flex items-center justify-center min-h-[calc(100vh-200px)]">
+          <Card className="w-full max-w-md">
+            <CardContent className="pt-6 text-center space-y-4">
+              <div className="flex justify-center">
+                <div className="rounded-full bg-primary/10 p-6">
+                  <Construction className="h-16 w-16 text-primary" />
+                </div>
+              </div>
               <div className="space-y-2">
-                <h2 className="text-2xl font-bold">
-                  ¡Bienvenido, {user.email}!
-                </h2>
-                <p className="opacity-90">
-                  Panel de ventas de {user.club.nombre}
+                <h2 className="text-3xl font-bold">En Desarrollo</h2>
+                <p className="text-muted-foreground">
+                  Esta sección está siendo desarrollada actualmente.
                 </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Stats Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Products Card */}
-            <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium">Productos</CardTitle>
-                <Package className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">-</div>
-                <p className="text-xs text-muted-foreground">
-                  Ver productos disponibles
+                <p className="text-sm text-muted-foreground">
+                  Pronto tendrás acceso a todas las funcionalidades de bartender.
                 </p>
-              </CardContent>
-            </Card>
-
-            {/* Sales Card */}
-            <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium">Nueva Venta</CardTitle>
-                <ShoppingCart className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">+</div>
-                <p className="text-xs text-muted-foreground">
-                  Registrar venta
-                </p>
-              </CardContent>
-            </Card>
-
-            {/* My Sales Card */}
-            <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium">Mis Ventas</CardTitle>
-                <TrendingUp className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">-</div>
-                <p className="text-xs text-muted-foreground">
-                  Ventas realizadas
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Quick Actions */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Acciones Rápidas</CardTitle>
-              <CardDescription>
-                Operaciones principales para bartenders
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <Button className="w-full justify-start" variant="outline" size="lg">
-                <ShoppingCart className="mr-2 h-5 w-5" />
-                Registrar Nueva Venta
-              </Button>
-              <Button className="w-full justify-start" variant="outline" size="lg">
-                <Package className="mr-2 h-5 w-5" />
-                Ver Inventario
-              </Button>
-              <Button className="w-full justify-start" variant="outline" size="lg">
-                <TrendingUp className="mr-2 h-5 w-5" />
-                Ver Mis Ventas
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Club Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Building2 className="mr-2 h-5 w-5" />
-                Información del Club
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex items-center justify-between py-2 border-b">
-                <span className="text-sm font-medium text-muted-foreground">Nombre</span>
-                <span className="font-semibold">{user.club.nombre}</span>
-              </div>
-              <div className="flex items-center justify-between py-2 border-b">
-                <span className="text-sm font-medium text-muted-foreground">Ubicación</span>
-                <span>{user.club.ubicacion || 'No especificada'}</span>
-              </div>
-              <div className="flex items-center justify-between py-2">
-                <span className="text-sm font-medium text-muted-foreground">Estado</span>
-                <Badge variant={user.club.activo ? 'default' : 'destructive'}>
-                  {user.club.activo ? 'Activo' : 'Inactivo'}
-                </Badge>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* User Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <User className="mr-2 h-5 w-5" />
-                Tu Información
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex items-center justify-between py-2 border-b">
-                <span className="text-sm font-medium text-muted-foreground">Email</span>
-                <span className="font-semibold">{user.email}</span>
-              </div>
-              <div className="flex items-center justify-between py-2 border-b">
-                <span className="text-sm font-medium text-muted-foreground">Rol</span>
-                <Badge variant="secondary">{user.personal.rol}</Badge>
-              </div>
-              <div className="flex items-center justify-between py-2">
-                <span className="text-sm font-medium text-muted-foreground">Estado</span>
-                <Badge variant={user.personal.activo ? 'default' : 'destructive'}>
-                  {user.personal.activo ? 'Activo' : 'Inactivo'}
-                </Badge>
               </div>
             </CardContent>
           </Card>

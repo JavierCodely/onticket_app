@@ -51,6 +51,7 @@ interface NewSaleDialogProps {
   onSaleCreated: () => void;
   editingSale?: any | null;
   onDeleteSale?: (saleId: string) => Promise<void>;
+  autoSelectCurrentUser?: boolean;
 }
 
 type ViewMode = 'products' | 'promotions' | 'combos';
@@ -77,6 +78,7 @@ export function NewSaleDialog({
   onSaleCreated,
   editingSale = null,
   onDeleteSale,
+  autoSelectCurrentUser = false,
 }: NewSaleDialogProps) {
   const { user } = useAuth();
   const { defaultCurrency } = useCurrency();
@@ -226,7 +228,19 @@ export function NewSaleDialog({
       } else {
         // NEW SALE MODE: Reset everything
         clearCart();
-        setEmpleado(null);
+
+        // Auto-select current user if autoSelectCurrentUser is true
+        if (autoSelectCurrentUser && user?.id) {
+          const currentEmpleado = empleados.find(emp => emp.user_id === user.id);
+          if (currentEmpleado) {
+            setEmpleado(currentEmpleado.id);
+          } else {
+            setEmpleado(null);
+          }
+        } else {
+          setEmpleado(null);
+        }
+
         setSearchQuery('');
         setSelectedCategory('all');
         setViewMode('products');
@@ -235,7 +249,7 @@ export function NewSaleDialog({
         setTipoDescuento('porcentaje');
       }
     }
-  }, [open, clearCart, setEmpleado, productos, promociones, combos, editingSale, addProduct, addCombo, changeMetodoPago, changeCurrency]);
+  }, [open, clearCart, setEmpleado, productos, promociones, combos, editingSale, addProduct, addCombo, changeMetodoPago, changeCurrency, autoSelectCurrentUser, user, empleados]);
 
   // Clear cart when employee changes (to recalculate prices based on new employee's role)
   // Skip this behavior when editing a sale
@@ -797,10 +811,10 @@ export function NewSaleDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="!max-w-[95vw] !w-[95vw] !h-[95vh] !min-h-[95vh] p-0 flex flex-col sm:!max-w-[95vw] md:!max-w-[95vw] lg:!max-w-[95vw]">
-        <DialogHeader className="p-6 pb-0 shrink-0">
-          <DialogTitle>{editingSale ? 'Editar Venta' : 'Nueva Venta'}</DialogTitle>
-          <DialogDescription>
+      <DialogContent className="!max-w-[98vw] !w-[98vw] !h-[98vh] !min-h-[98vh] p-0 flex flex-col">
+        <DialogHeader className="p-4 md:p-6 pb-0 shrink-0">
+          <DialogTitle className="text-2xl md:text-3xl">{editingSale ? 'Editar Venta' : 'Nueva Venta'}</DialogTitle>
+          <DialogDescription className="text-base md:text-lg">
             {editingSale
               ? 'Modifica los productos, cantidades o detalles de la venta'
               : 'Selecciona el empleado, método de pago y agrega productos al carrito'
@@ -808,15 +822,15 @@ export function NewSaleDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-1 gap-4 p-4 pt-3 overflow-hidden min-h-0">
+        <div className="flex flex-1 gap-3 md:gap-4 p-3 md:p-4 pt-2 md:pt-3 overflow-hidden min-h-0">
           {/* Left side - Employee, Payment, and Products */}
-          <div className="flex-1 flex flex-col gap-3 overflow-hidden">
+          <div className="flex-1 flex flex-col gap-2 md:gap-3 overflow-hidden">
             {/* Employee, Payment Method and Currency - ALL IN ONE ROW */}
-            <div className="grid grid-cols-3 gap-3 shrink-0">
+            <div className="grid grid-cols-3 gap-2 md:gap-3 shrink-0">
               {/* Employee Selector */}
-              <div className="space-y-2">
-                <Label htmlFor="empleado-select" className="flex items-center gap-2 text-base font-semibold">
-                  <UserCircle className="h-5 w-5" />
+              <div className="space-y-1.5 md:space-y-2">
+                <Label htmlFor="empleado-select" className="flex items-center gap-1.5 md:gap-2 text-lg md:text-xl font-semibold">
+                  <UserCircle className="h-5 w-5 md:h-6 md:w-6" />
                   Empleado
                 </Label>
                 <select
@@ -824,7 +838,7 @@ export function NewSaleDialog({
                   value={empleadoId || ''}
                   onChange={(e) => setEmpleado(e.target.value || null)}
                 disabled={isSubmitting}
-                  className="flex h-11 w-full items-center justify-between rounded-md border-2 border-input bg-background px-3 py-2 text-base font-medium ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-all hover:border-primary/50"
+                  className="flex h-12 md:h-14 w-full items-center justify-between rounded-md border-2 border-input bg-background px-3 py-2 text-lg md:text-xl font-medium ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-all hover:border-primary/50"
                 >
                   <option value="">Seleccionar</option>
                   {currentUser && (
@@ -843,9 +857,9 @@ export function NewSaleDialog({
               </div>
 
               {/* Payment Method */}
-              <div className="space-y-2">
-                <Label htmlFor="metodo-pago-select" className="flex items-center gap-2 text-base font-semibold">
-                  <CreditCard className="h-5 w-5" />
+              <div className="space-y-1.5 md:space-y-2">
+                <Label htmlFor="metodo-pago-select" className="flex items-center gap-1.5 md:gap-2 text-lg md:text-xl font-semibold">
+                  <CreditCard className="h-5 w-5 md:h-6 md:w-6" />
                   Método de pago
                 </Label>
                 <select
@@ -853,7 +867,7 @@ export function NewSaleDialog({
                   value={metodoPago}
                   onChange={(e) => changeMetodoPago(e.target.value as MetodoPago)}
                 disabled={isSubmitting || !empleadoId}
-                  className="flex h-11 w-full items-center justify-between rounded-md border-2 border-input bg-background px-3 py-2 text-base font-medium ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-all hover:border-primary/50"
+                  className="flex h-12 md:h-14 w-full items-center justify-between rounded-md border-2 border-input bg-background px-3 py-2 text-lg md:text-xl font-medium ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-all hover:border-primary/50"
                 >
                   <option value="efectivo">💵 Efectivo</option>
                   <option value="transferencia">🏦 Transferencia</option>
@@ -863,9 +877,9 @@ export function NewSaleDialog({
               </div>
 
               {/* Currency */}
-              <div className="space-y-2">
-                <Label htmlFor="moneda-select" className="flex items-center gap-2 text-base font-semibold">
-                  <Coins className="h-5 w-5" />
+              <div className="space-y-1.5 md:space-y-2">
+                <Label htmlFor="moneda-select" className="flex items-center gap-1.5 md:gap-2 text-lg md:text-xl font-semibold">
+                  <Coins className="h-5 w-5 md:h-6 md:w-6" />
                   Moneda
                 </Label>
                 <select
@@ -873,7 +887,7 @@ export function NewSaleDialog({
                   value={moneda}
                   onChange={(e) => changeCurrency(e.target.value as CurrencyCode)}
                   disabled={isSubmitting || !empleadoId || !canChangeCurrency}
-                  className="flex h-11 w-full items-center justify-between rounded-md border-2 border-input bg-background px-3 py-2 text-base font-medium ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-all hover:border-primary/50"
+                  className="flex h-12 md:h-14 w-full items-center justify-between rounded-md border-2 border-input bg-background px-3 py-2 text-lg md:text-xl font-medium ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-all hover:border-primary/50"
                 >
                   {Object.values(CURRENCIES).map((currency) => (
                     <option key={currency.code} value={currency.code}>
@@ -887,21 +901,21 @@ export function NewSaleDialog({
             {/* Products Grid */}
             <div className="flex-1 overflow-hidden">
               {empleadoId ? (
-                <div className="h-full flex flex-col gap-2">
+                <div className="h-full flex flex-col gap-1.5 md:gap-2">
                   {/* View Mode Selector and Search in one row */}
-                  <div className="flex items-center gap-3 shrink-0">
+                  <div className="flex items-center gap-2 md:gap-3 shrink-0">
                     <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)}>
-                      <TabsList className="h-12 p-1">
-                        <TabsTrigger value="products" className="text-base font-semibold px-5 h-10 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                          <Package className="h-5 w-5 mr-2" />
+                      <TabsList className="h-14 md:h-16 p-1">
+                        <TabsTrigger value="products" className="text-lg md:text-xl font-semibold px-4 md:px-6 h-12 md:h-14 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                          <Package className="h-5 w-5 md:h-6 md:w-6 mr-2" />
                           Productos
                         </TabsTrigger>
-                        <TabsTrigger value="promotions" className="text-base font-semibold px-5 h-10 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                          <Tag className="h-5 w-5 mr-2" />
+                        <TabsTrigger value="promotions" className="text-lg md:text-xl font-semibold px-4 md:px-6 h-12 md:h-14 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                          <Tag className="h-5 w-5 md:h-6 md:w-6 mr-2" />
                           Promociones
                         </TabsTrigger>
-                        <TabsTrigger value="combos" className="text-base font-semibold px-5 h-10 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                          <TrendingUp className="h-5 w-5 mr-2" />
+                        <TabsTrigger value="combos" className="text-lg md:text-xl font-semibold px-4 md:px-6 h-12 md:h-14 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                          <TrendingUp className="h-5 w-5 md:h-6 md:w-6 mr-2" />
                           Combos
                         </TabsTrigger>
                       </TabsList>
@@ -909,23 +923,23 @@ export function NewSaleDialog({
 
                     {/* Search */}
                     <div className="relative flex-1">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                      <Search className="absolute left-3 md:left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 md:h-6 md:w-6 text-muted-foreground" />
                       <Input
                         placeholder="Buscar..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-10 h-12 text-base font-medium border-2"
+                        className="pl-10 md:pl-12 h-14 md:h-16 text-lg md:text-xl font-medium border-2"
                       />
                     </div>
                   </div>
 
                   {/* Category Filter */}
                   {(viewMode === 'products' || viewMode === 'promotions') && (
-                    <div className="flex flex-wrap gap-1.5 shrink-0">
+                    <div className="flex flex-wrap gap-1.5 md:gap-2 shrink-0">
                       <Button
                         variant={selectedCategory === 'all' ? 'default' : 'outline'}
                         size="sm"
-                        className="h-9 text-base font-semibold px-3"
+                        className="h-10 md:h-12 text-base md:text-lg font-semibold px-3 md:px-4"
                         onClick={() => setSelectedCategory('all')}
                       >
                         Todas
@@ -935,7 +949,7 @@ export function NewSaleDialog({
                           key={category}
                           variant={selectedCategory === category ? 'default' : 'outline'}
                           size="sm"
-                          className="h-9 text-base font-semibold px-3"
+                          className="h-10 md:h-12 text-base md:text-lg font-semibold px-3 md:px-4"
                           onClick={() => setSelectedCategory(category)}
                         >
                           {category}
@@ -945,9 +959,9 @@ export function NewSaleDialog({
                   )}
 
                   {/* Products/Promotions/Combos Grid */}
-                  <ScrollArea className="flex-1">
+                  <ScrollArea className="flex-1 w-full min-h-0 h-full">
                     {viewMode === 'products' && (
-                      <div className="grid grid-cols-5 md:grid-cols-6 lg:grid-cols-7 xl:grid-cols-8 gap-2 p-1">
+                      <div className="grid grid-cols-6 gap-2 p-1 pr-3">
                         {filteredProductos.map((producto) => {
                           const precio = getProductPrice(producto);
                           const precioCompra = isSelectedEmpleadoAdmin
@@ -981,7 +995,7 @@ export function NewSaleDialog({
                     )}
 
                     {viewMode === 'promotions' && (
-                      <div className="grid grid-cols-5 md:grid-cols-6 lg:grid-cols-7 xl:grid-cols-8 gap-2 p-1">
+                      <div className="grid grid-cols-6 gap-2 p-1 pr-3">
                         {filteredPromociones.map((promocion) => {
                           const producto = productos.find((p) => p.id === promocion.producto_id);
                           if (!producto) return null;
@@ -1016,16 +1030,24 @@ export function NewSaleDialog({
                     )}
 
                     {viewMode === 'combos' && (
-                      <div className="grid grid-cols-5 md:grid-cols-6 lg:grid-cols-7 xl:grid-cols-8 gap-2 p-1">
+                      <div className="grid grid-cols-6 gap-2 p-1 pr-3">
                         {filteredCombos.map((combo) => {
                           const precio = getComboPrice(combo);
                           const precioARS = combo.precio_combo_ars || combo.precio_combo;
+
+                          // Get precio_real for discount calculation
+                          const precioReal = moneda === 'ARS'
+                            ? combo.precio_real_ars
+                            : moneda === 'USD'
+                            ? combo.precio_real_usd
+                            : combo.precio_real_brl;
 
                           return (
                             <ComboCard
                               key={combo.id}
                               nombre={combo.nombre}
                               precio={precio}
+                              precioReal={precioReal}
                               precioARS={precioARS}
                               imagen_url={combo.imagen_url}
                   moneda={moneda}
@@ -1050,21 +1072,21 @@ export function NewSaleDialog({
           </div>
 
           {/* Right side - Shopping Cart */}
-          <div className="w-[350px] flex flex-col overflow-hidden">
+          <div className="w-[320px] md:w-[440px] lg:w-[480px] flex flex-col overflow-hidden">
             <Card className="h-full flex flex-col">
-              <CardHeader className="p-3 pb-2">
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <CartIcon className="h-4 w-4" />
+              <CardHeader className="p-3 md:p-4 pb-2">
+                <CardTitle className="flex items-center gap-2 text-xl md:text-2xl">
+                  <CartIcon className="h-5 w-5 md:h-6 md:w-6" />
                   Carrito ({items.length})
                 </CardTitle>
               </CardHeader>
 
-              <CardContent className="flex-1 overflow-hidden p-3 pt-0">
+              <CardContent className="flex-1 overflow-hidden p-3 md:p-4 pt-0">
                 {items.length === 0 ? (
                   <div className="h-full flex items-center justify-center">
                     <div className="text-center text-muted-foreground">
-                      <CartIcon className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                      <p className="text-xs">Carrito vacío</p>
+                      <CartIcon className="h-10 w-10 md:h-12 md:w-12 mx-auto mb-2 opacity-50" />
+                      <p className="text-base md:text-lg">Carrito vacío</p>
                     </div>
                   </div>
                 ) : (
@@ -1269,24 +1291,24 @@ export function NewSaleDialog({
               </CardContent>
 
               {items.length > 0 && (
-                <CardFooter className="flex-col gap-3 border-t p-3">
-                  <div className="w-full space-y-2">
-                    <div className="flex justify-between text-base">
+                <CardFooter className="flex-col gap-3 md:gap-4 border-t p-3 md:p-4">
+                  <div className="w-full space-y-2 md:space-y-3">
+                    <div className="flex justify-between text-lg md:text-xl">
                       <span className="text-muted-foreground font-semibold">Subtotal:</span>
                       <span className="font-bold">{formatCurrency(subtotal, moneda)}</span>
                     </div>
                     
                     {/* Descuento Input */}
-                    <div className="space-y-1">
+                    <div className="space-y-1.5">
                       <div className="flex items-center justify-between">
-                        <Label htmlFor="descuento-adicional" className="text-sm font-medium">
+                        <Label htmlFor="descuento-adicional" className="text-base md:text-lg font-semibold">
                           Descuento adicional
                         </Label>
                         {descuentoAdicional > 0 && (
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-6 px-2 text-xs"
+                            className="h-8 px-3 text-sm"
                             onClick={handleRemoverDescuento}
                           >
                             Quitar
@@ -1294,7 +1316,7 @@ export function NewSaleDialog({
                         )}
                       </div>
                       <div className="flex gap-2">
-                        <div className="flex gap-1 flex-1">
+                        <div className="flex gap-1.5 flex-1">
                           <Input
                             id="descuento-adicional"
                             type="number"
@@ -1303,7 +1325,7 @@ export function NewSaleDialog({
                             value={descuentoInput}
                             onChange={(e) => setDescuentoInput(e.target.value)}
                             placeholder={tipoDescuento === 'porcentaje' ? '%' : 'Monto'}
-                            className="h-9 text-sm flex-1"
+                            className="h-11 text-base flex-1"
                             disabled={isSubmitting}
                             onKeyDown={(e) => {
                               if (e.key === 'Enter') {
@@ -1314,7 +1336,7 @@ export function NewSaleDialog({
                           <select
                             value={tipoDescuento}
                             onChange={(e) => setTipoDescuento(e.target.value as 'porcentaje' | 'monto')}
-                            className="h-9 text-sm border rounded-md px-2"
+                            className="h-11 text-base border rounded-md px-3"
                             disabled={isSubmitting}
                           >
                             <option value="porcentaje">%</option>
@@ -1324,7 +1346,7 @@ export function NewSaleDialog({
                         <Button
                           variant="outline"
                           size="sm"
-                          className="h-9 px-3 text-sm"
+                          className="h-11 px-4 text-base font-semibold"
                           onClick={handleAplicarDescuento}
                           disabled={isSubmitting || !descuentoInput}
                         >
@@ -1349,21 +1371,21 @@ export function NewSaleDialog({
                     
                     <Separator />
 
-                    <div className="flex justify-between text-3xl font-bold">
+                    <div className="flex justify-between text-3xl md:text-4xl font-bold">
                       <span>Total:</span>
                       <span className="text-[#00ff41]">{formatCurrency(totalConDescuentoAdicional, moneda)}</span>
                     </div>
                   </div>
 
                   <Button
-                    className="w-full h-10 text-base"
+                    className="w-full h-14 md:h-16 text-xl md:text-2xl font-bold"
                     onClick={handleConfirmSale}
                     disabled={!isValid || isSubmitting}
                   >
                     {isSubmitting ? 'Procesando...' : (editingSale ? 'Guardar Cambios' : 'Confirmar Venta')}
                   </Button>
                   {!isValid && (
-                    <p className="text-sm text-muted-foreground text-center">
+                    <p className="text-base md:text-lg text-muted-foreground text-center">
                       Selecciona un empleado para continuar
                     </p>
                   )}
