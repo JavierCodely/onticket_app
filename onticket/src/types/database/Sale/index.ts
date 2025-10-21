@@ -79,8 +79,9 @@ export interface SaleWithDetails extends Sale {
 export interface SaleFilters {
   fecha_desde?: string;
   fecha_hasta?: string;
-  personal_id?: string;
-  metodo_pago?: MetodoPago;
+  personal_id?: string | string[]; // Support single or multiple employees
+  rol?: string | string[]; // Support single or multiple employee roles
+  metodo_pago?: MetodoPago | MetodoPago[]; // Support single or multiple payment methods
   categoria?: string;
   moneda?: CurrencyCode;
 }
