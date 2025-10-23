@@ -9,7 +9,7 @@ import type { SaleItem } from '../SaleItem';
 /**
  * Payment method enumeration
  */
-export type MetodoPago = 'efectivo' | 'transferencia' | 'tarjeta' | 'billetera_virtual';
+export type MetodoPago = 'efectivo' | 'transferencia' | 'tarjeta' | 'billetera_virtual' | 'mixto' | 'tarjeta_vip';
 
 /**
  * Sale table interface (header only) with multi-currency support
@@ -36,6 +36,8 @@ export interface Sale {
   descuento_brl: number;
   total_brl: number;
   metodo_pago: MetodoPago;
+  monto_efectivo: number; // Amount paid in cash (used when metodo_pago = 'mixto')
+  monto_transferencia: number; // Amount paid by transfer (used when metodo_pago = 'mixto')
   comentarios?: string | null;
   created_at: string;
   // Joined data
@@ -77,8 +79,10 @@ export interface SaleWithDetails extends Sale {
 export interface SaleFilters {
   fecha_desde?: string;
   fecha_hasta?: string;
-  personal_id?: string;
-  metodo_pago?: MetodoPago;
+  personal_id?: string | string[]; // Support single or multiple employees
+  rol?: string | string[]; // Support single or multiple employee roles
+  metodo_pago?: MetodoPago | MetodoPago[]; // Support single or multiple payment methods
   categoria?: string;
+  producto_id?: string; // Filter by specific product
   moneda?: CurrencyCode;
 }

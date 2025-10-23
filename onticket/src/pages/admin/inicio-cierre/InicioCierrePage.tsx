@@ -297,10 +297,11 @@ export const InicioCierrePage: React.FC = () => {
     }
   };
 
-  // Clear filters
+  // Clear filters - reset to today's date
   const handleClearFilters = () => {
-    setFechaDesde('');
-    setFechaHasta('');
+    const today = new Date().toISOString().split('T')[0];
+    setFechaDesde(today);
+    setFechaHasta(today);
     setSelectedCategory('all');
   };
 

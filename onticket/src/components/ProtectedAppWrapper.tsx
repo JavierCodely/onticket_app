@@ -22,6 +22,7 @@ const LoadingFallback = () => (
 
 // Protected routes - lazy loaded only when authenticated
 const AdminDashboard = lazy(() => import('@/pages/admin/dashboard/DashboardPage').then(m => ({ default: m.DashboardPage })));
+const RentabilidadPage = lazy(() => import('@/pages/admin/rentabilidad/RentabilidadPage').then(m => ({ default: m.RentabilidadPage })));
 const InformacionPage = lazy(() => import('@/pages/admin/informacion/InformacionPage').then(m => ({ default: m.InformacionPage })));
 const ProductosPage = lazy(() => import('@/pages/admin/productos/ProductosPage').then(m => ({ default: m.ProductosPage })));
 const InicioCierrePage = lazy(() => import('@/pages/admin/inicio-cierre/InicioCierrePage').then(m => ({ default: m.InicioCierrePage })));
@@ -59,6 +60,7 @@ export const ProtectedAppWrapper: React.FC = () => {
                 <Suspense fallback={<LoadingFallback />}>
                   <Routes>
                     <Route path="/" element={<AdminDashboard />} />
+                    <Route path="rentabilidad" element={<RentabilidadPage />} />
                     <Route path="informacion" element={<InformacionPage />} />
                     <Route path="productos" element={<ProductosPage />} />
                     <Route path="combos" element={<CombosPage />} />

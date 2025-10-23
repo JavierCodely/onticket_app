@@ -49,6 +49,11 @@ export function useSales(options: UseSalesOptions = {}) {
           case 'billetera_virtual':
             stats.total_billetera_virtual += sale.total;
             break;
+          case 'mixto':
+            // For mixed payments, add the specific amounts to each method
+            stats.total_efectivo += sale.monto_efectivo || 0;
+            stats.total_transferencia += sale.monto_transferencia || 0;
+            break;
         }
 
         // Sum quantities from all sale_items
@@ -103,10 +108,20 @@ export function useSales(options: UseSalesOptions = {}) {
         query = query.lte('created_at', filters.fecha_hasta);
       }
       if (filters?.personal_id) {
-        query = query.eq('personal_id', filters.personal_id);
+        // Support both single and multiple employee IDs
+        if (Array.isArray(filters.personal_id)) {
+          query = query.in('personal_id', filters.personal_id);
+        } else {
+          query = query.eq('personal_id', filters.personal_id);
+        }
       }
       if (filters?.metodo_pago) {
-        query = query.eq('metodo_pago', filters.metodo_pago);
+        // Support both single and multiple payment methods
+        if (Array.isArray(filters.metodo_pago)) {
+          query = query.in('metodo_pago', filters.metodo_pago);
+        } else {
+          query = query.eq('metodo_pago', filters.metodo_pago);
+        }
       }
       if (filters?.moneda) {
         query = query.eq('moneda', filters.moneda);
@@ -126,6 +141,25 @@ export function useSales(options: UseSalesOptions = {}) {
           return (sale as any).sale_items?.some(
             (item: any) => item.productos?.categoria === filters.categoria
           );
+        });
+      }
+
+      // Filter by specific product if needed (client-side)
+      if (filters?.producto_id && filters.producto_id !== 'all') {
+        filteredData = filteredData.filter((sale) => {
+          // Check if any sale_item contains the specified product
+          return (sale as any).sale_items?.some(
+            (item: any) => item.producto_id === filters.producto_id
+          );
+        });
+      }
+
+      // Filter by employee role if needed (client-side)
+      if (filters?.rol) {
+        const roles = Array.isArray(filters.rol) ? filters.rol : [filters.rol];
+        filteredData = filteredData.filter((sale) => {
+          const saleRol = (sale as any).personal?.rol;
+          return saleRol && roles.includes(saleRol);
         });
       }
 
