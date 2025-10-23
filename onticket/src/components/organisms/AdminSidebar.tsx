@@ -21,6 +21,7 @@ import {
   DoorOpen,
   ShoppingCart,
   TrendingDown,
+  TrendingUp,
   Calendar,
   Users,
   Settings,
@@ -46,6 +47,11 @@ const navItems: NavItem[] = [
     title: 'Dashboard',
     href: '/admin',
     icon: LayoutDashboard,
+  },
+  {
+    title: 'Rentabilidad por Producto',
+    href: '/admin/rentabilidad',
+    icon: TrendingUp,
   },
   {
     title: 'Productos',

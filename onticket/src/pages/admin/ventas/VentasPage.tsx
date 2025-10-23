@@ -16,6 +16,16 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Plus, DollarSign, CreditCard, Package, ChevronDown, ChevronRight, Trash2, Pencil } from 'lucide-react';
 import { StatsCard } from '@/components/molecules/ventas/StatsCard';
 import { SalesFilters } from '@/components/molecules/ventas/SalesFilters';
@@ -27,12 +37,15 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { toast } from 'sonner';
 import type { Producto, Promocion, ComboWithProducts, Personal, SaleFilters, SaleWithDetails } from '@/types/database';
 
 export function VentasPage() {
   const { user } = useAuth();
   const [showNewSaleDialog, setShowNewSaleDialog] = useState(false);
   const [editingSale, setEditingSale] = useState<SaleWithDetails | null>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [saleToDelete, setSaleToDelete] = useState<string | null>(null);
 
   // Initialize filters with today's date range
   const [filters, setFilters] = useState<SaleFilters>(() => {
@@ -80,7 +93,7 @@ export function VentasPage() {
    */
   const handleEditSale = async (sale: SaleWithDetails) => {
     if (user?.personal?.rol !== 'Admin') {
-      alert('Solo los administradores pueden editar ventas');
+      toast.error('Solo los administradores pueden editar ventas');
       return;
     }
 
@@ -187,22 +200,30 @@ export function VentasPage() {
   /**
    * Handle delete sale (Admin only)
    */
-  const handleDeleteSale = async (saleId: string) => {
+  const handleDeleteSale = (saleId: string) => {
     if (user?.personal?.rol !== 'Admin') {
-      alert('Solo los administradores pueden eliminar ventas');
+      toast.error('Solo los administradores pueden eliminar ventas');
       return;
     }
 
-    if (!confirm('¿Estás seguro de que quieres eliminar esta venta? Esta acción no se puede deshacer.')) {
-      return;
-    }
+    setSaleToDelete(saleId);
+    setShowDeleteDialog(true);
+  };
+
+  /**
+   * Confirm delete sale
+   */
+  const confirmDeleteSale = async () => {
+    if (!saleToDelete) return;
 
     try {
-      await deleteSale(saleId);
-      alert('Venta eliminada correctamente');
+      await deleteSale(saleToDelete);
+      toast.success('Venta eliminada correctamente');
+      setShowDeleteDialog(false);
+      setSaleToDelete(null);
     } catch (error) {
       console.error('Error deleting sale:', error);
-      alert('Error al eliminar la venta');
+      toast.error('Error al eliminar la venta');
     }
   };
 
@@ -353,7 +374,7 @@ export function VentasPage() {
         </div>
 
         {/* Filters */}
-        <SalesFilters onFiltersChange={setFilters} empleados={empleados} initialFilters={filters} />
+        <SalesFilters onFiltersChange={setFilters} empleados={empleados} productos={productos} initialFilters={filters} />
 
         {/* Sales Table */}
         <Card>
@@ -541,6 +562,29 @@ export function VentasPage() {
           editingSale={editingSale}
           onDeleteSale={deleteSale}
         />
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Esta acción no se puede deshacer. La venta será eliminada permanentemente y el stock de los productos será restaurado.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setSaleToDelete(null)}>
+                Cancelar
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={confirmDeleteSale}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Eliminar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </AdminLayout>
   );

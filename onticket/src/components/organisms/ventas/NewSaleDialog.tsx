@@ -1491,7 +1491,7 @@ export function NewSaleDialog({
                               setMontoTransferenciaError('');
                             }}
                             placeholder="0.00"
-                            className={`h-16 text-2xl font-bold flex-1 ${montoTransferenciaError ? 'border-red-500 border-2' : ''}`}
+                            className={`h-16 !text-4xl font-bold flex-1 ${montoTransferenciaError ? 'border-red-500 border-2' : ''}`}
                             disabled={isSubmitting}
                           />
                           <div className="flex items-center px-4 bg-muted rounded-md border-2 border-input">

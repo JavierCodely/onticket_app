@@ -17,20 +17,21 @@ import {
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Filter, X, Check, ChevronsUpDown } from 'lucide-react';
-import type { SaleFilters, Personal, MetodoPago, RolPersonal } from '@/types/database';
+import { Filter, X, ChevronsUpDown } from 'lucide-react';
+import type { SaleFilters, Personal, MetodoPago, RolPersonal, Producto } from '@/types/database';
 
 interface SalesFiltersProps {
   onFiltersChange: (filters: SaleFilters) => void;
   empleados: Personal[];
+  productos?: Producto[];
   initialFilters?: SaleFilters;
 }
 
-export function SalesFilters({ onFiltersChange, empleados, initialFilters = {} }: SalesFiltersProps) {
+export function SalesFilters({ onFiltersChange, empleados, productos = [], initialFilters = {} }: SalesFiltersProps) {
   const [filters, setFilters] = useState<SaleFilters>(initialFilters);
   const [isOpen, setIsOpen] = useState(false);
 
-  const handleFilterChange = (key: keyof SaleFilters, value: string | undefined) => {
+  const handleFilterChange = (key: keyof SaleFilters, value: string | undefined, updateState: boolean = true) => {
     const newFilters = { ...filters };
 
     if (value === undefined || value === '' || value === 'all') {
@@ -39,7 +40,9 @@ export function SalesFilters({ onFiltersChange, empleados, initialFilters = {} }
       newFilters[key] = value as any;
     }
 
-    setFilters(newFilters);
+    if (updateState) {
+      setFilters(newFilters);
+    }
     onFiltersChange(newFilters);
   };
 
@@ -87,6 +90,11 @@ export function SalesFilters({ onFiltersChange, empleados, initialFilters = {} }
   };
 
   const hasActiveFilters = Object.keys(filters).length > 0;
+
+  // Filter products by selected category
+  const filteredProductos = filters.categoria && filters.categoria !== 'all'
+    ? productos.filter(p => p.categoria === filters.categoria)
+    : productos;
 
   // Get payment method label
   const getMetodoPagoLabel = (metodo: MetodoPago): string => {
@@ -150,7 +158,20 @@ export function SalesFilters({ onFiltersChange, empleados, initialFilters = {} }
                   const dateValue = e.target.value;
                   if (dateValue) {
                     const isoDate = new Date(dateValue + 'T00:00:00').toISOString();
-                    handleFilterChange('fecha_desde', isoDate);
+
+                    // Auto-update fecha_hasta to the next day
+                    const nextDay = new Date(dateValue);
+                    nextDay.setDate(nextDay.getDate() + 1);
+                    const nextDayISO = new Date(nextDay.toISOString().split('T')[0] + 'T23:59:59').toISOString();
+
+                    // Update both dates at once
+                    const newFilters = {
+                      ...filters,
+                      fecha_desde: isoDate,
+                      fecha_hasta: nextDayISO
+                    };
+                    setFilters(newFilters);
+                    onFiltersChange(newFilters);
                   } else {
                     handleFilterChange('fecha_desde', undefined);
                   }
@@ -182,7 +203,26 @@ export function SalesFilters({ onFiltersChange, empleados, initialFilters = {} }
               <Label htmlFor="categoria">Categoría</Label>
               <Select
                 value={filters.categoria || 'all'}
-                onValueChange={(value) => handleFilterChange('categoria', value)}
+                onValueChange={(value) => {
+                  const newFilters = { ...filters };
+
+                  if (value === 'all') {
+                    delete newFilters.categoria;
+                  } else {
+                    newFilters.categoria = value;
+                  }
+
+                  // Reset producto_id if the currently selected product is not in the new category
+                  if (newFilters.producto_id) {
+                    const selectedProduct = productos.find(p => p.id === newFilters.producto_id);
+                    if (selectedProduct && value !== 'all' && selectedProduct.categoria !== value) {
+                      delete newFilters.producto_id;
+                    }
+                  }
+
+                  setFilters(newFilters);
+                  onFiltersChange(newFilters);
+                }}
               >
                 <SelectTrigger id="categoria">
                   <SelectValue placeholder="Todas" />
@@ -198,6 +238,31 @@ export function SalesFilters({ onFiltersChange, empleados, initialFilters = {} }
                   <SelectItem value="Cocteles">Cocteles</SelectItem>
                   <SelectItem value="Whisky">Whisky</SelectItem>
                   <SelectItem value="Otros">Otros</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Product Filter */}
+            <div className="space-y-2">
+              <Label htmlFor="producto">Producto</Label>
+              <Select
+                value={filters.producto_id || 'all'}
+                onValueChange={(value) => handleFilterChange('producto_id', value)}
+              >
+                <SelectTrigger id="producto">
+                  <SelectValue placeholder="Todos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">
+                    {filters.categoria && filters.categoria !== 'all'
+                      ? `Todos (${filters.categoria})`
+                      : 'Todos los productos'}
+                  </SelectItem>
+                  {filteredProductos.map((producto) => (
+                    <SelectItem key={producto.id} value={producto.id}>
+                      {producto.nombre}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

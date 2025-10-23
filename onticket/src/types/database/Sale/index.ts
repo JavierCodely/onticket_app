@@ -83,5 +83,6 @@ export interface SaleFilters {
   rol?: string | string[]; // Support single or multiple employee roles
   metodo_pago?: MetodoPago | MetodoPago[]; // Support single or multiple payment methods
   categoria?: string;
+  producto_id?: string; // Filter by specific product
   moneda?: CurrencyCode;
 }

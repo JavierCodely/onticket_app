@@ -144,6 +144,16 @@ export function useSales(options: UseSalesOptions = {}) {
         });
       }
 
+      // Filter by specific product if needed (client-side)
+      if (filters?.producto_id && filters.producto_id !== 'all') {
+        filteredData = filteredData.filter((sale) => {
+          // Check if any sale_item contains the specified product
+          return (sale as any).sale_items?.some(
+            (item: any) => item.producto_id === filters.producto_id
+          );
+        });
+      }
+
       // Filter by employee role if needed (client-side)
       if (filters?.rol) {
         const roles = Array.isArray(filters.rol) ? filters.rol : [filters.rol];
