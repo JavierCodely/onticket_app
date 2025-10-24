@@ -28,6 +28,16 @@ export const supabase: SupabaseClient<Database> = createClient<Database>(supabas
     persistSession: true,
     detectSessionInUrl: true,
   },
+  realtime: {
+    params: {
+      eventsPerSecond: 10,
+    },
+  },
+  global: {
+    headers: {
+      'x-client-info': 'onticket-app',
+    },
+  },
 });
 
 // Re-export Database type for convenience

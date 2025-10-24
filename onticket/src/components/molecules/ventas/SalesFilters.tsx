@@ -25,9 +25,16 @@ interface SalesFiltersProps {
   empleados: Personal[];
   productos?: Producto[];
   initialFilters?: SaleFilters;
+  hideEmployeeFilter?: boolean; // Hide employee filter (for bartender role)
 }
 
-export function SalesFilters({ onFiltersChange, empleados, productos = [], initialFilters = {} }: SalesFiltersProps) {
+export function SalesFilters({
+  onFiltersChange,
+  empleados,
+  productos = [],
+  initialFilters = {},
+  hideEmployeeFilter = false,
+}: SalesFiltersProps) {
   const [filters, setFilters] = useState<SaleFilters>(initialFilters);
   const [isOpen, setIsOpen] = useState(false);
 
@@ -268,8 +275,9 @@ export function SalesFilters({ onFiltersChange, empleados, productos = [], initi
             </div>
 
             {/* Employee Role */}
-            <div className="space-y-2">
-              <Label>Rol de Empleado</Label>
+            {!hideEmployeeFilter && (
+              <div className="space-y-2">
+                <Label>Rol de Empleado</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
@@ -321,7 +329,8 @@ export function SalesFilters({ onFiltersChange, empleados, productos = [], initi
                   </div>
                 </PopoverContent>
               </Popover>
-            </div>
+              </div>
+            )}
 
             {/* Payment Method */}
             <div className="space-y-2">
@@ -401,8 +410,9 @@ export function SalesFilters({ onFiltersChange, empleados, productos = [], initi
             </div>
 
             {/* Employee */}
-            <div className="space-y-2">
-              <Label>Empleado</Label>
+            {!hideEmployeeFilter && (
+              <div className="space-y-2">
+                <Label>Empleado</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
@@ -449,7 +459,8 @@ export function SalesFilters({ onFiltersChange, empleados, productos = [], initi
                   </div>
                 </PopoverContent>
               </Popover>
-            </div>
+              </div>
+            )}
           </div>
         )}
       </CardContent>

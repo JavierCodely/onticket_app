@@ -58,5 +58,14 @@ export type {
   PromocionFormData,
 } from './Promociones';
 
+// Profitability Report types
+export type {
+  ProfitabilityReport,
+  ProfitabilityReportMulticurrency,
+  ProfitabilityReportFilters,
+  ProfitabilityCategorySummary,
+  ProfitabilitySummary,
+} from './ProfitabilityReport';
+
 // Database schema
 export type { Database } from './database';
