@@ -47,11 +47,17 @@ export function VentasPage() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [saleToDelete, setSaleToDelete] = useState<string | null>(null);
 
-  // Initialize filters with today's date range
+  // Initialize filters with today's date range (UTC-based)
   const [filters, setFilters] = useState<SaleFilters>(() => {
     const today = new Date();
-    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0);
-    const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
+    // Use UTC dates to match Supabase's NOW() function
+    const startOfDay = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate(), 0, 0, 0));
+    const endOfDay = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate(), 23, 59, 59));
+
+    console.log('📅 [FILTERS] Initializing date filters (UTC):', {
+      startOfDay: startOfDay.toISOString(),
+      endOfDay: endOfDay.toISOString()
+    });
 
     return {
       fecha_desde: startOfDay.toISOString(),
@@ -221,6 +227,8 @@ export function VentasPage() {
       toast.success('Venta eliminada correctamente');
       setShowDeleteDialog(false);
       setSaleToDelete(null);
+      // Refresh dialog data to update stock quantities
+      fetchDialogData();
     } catch (error) {
       console.error('Error deleting sale:', error);
       toast.error('Error al eliminar la venta');
@@ -561,6 +569,7 @@ export function VentasPage() {
           onSaleCreated={handleSaleCreated}
           editingSale={editingSale}
           onDeleteSale={deleteSale}
+          onRefreshData={fetchDialogData}
         />
 
         {/* Delete Confirmation Dialog */}

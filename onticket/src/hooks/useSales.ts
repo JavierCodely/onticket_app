@@ -3,7 +3,7 @@
  * Manages sales data with realtime updates
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import type { SaleWithDetails, SaleFilters, SaleItem } from '@/types/database';
@@ -84,6 +84,7 @@ export function useSales(options: UseSalesOptions = {}) {
       return;
     }
 
+    console.log('📊 [FETCH] Fetching sales with filters:', filters);
     setLoading(true);
     setError(null);
 
@@ -102,9 +103,11 @@ export function useSales(options: UseSalesOptions = {}) {
 
       // Apply filters
       if (filters?.fecha_desde) {
+        console.log('📅 [FETCH] Applying fecha_desde filter:', filters.fecha_desde);
         query = query.gte('created_at', filters.fecha_desde);
       }
       if (filters?.fecha_hasta) {
+        console.log('📅 [FETCH] Applying fecha_hasta filter:', filters.fecha_hasta);
         query = query.lte('created_at', filters.fecha_hasta);
       }
       if (filters?.personal_id) {
@@ -131,6 +134,17 @@ export function useSales(options: UseSalesOptions = {}) {
 
       if (queryError) {
         throw queryError;
+      }
+
+      console.log('✅ [FETCH] Query returned', data?.length || 0, 'sales');
+      if (data && data.length > 0) {
+        const firstSale = data[0] as any;
+        console.log('📝 [FETCH] Most recent sale:', {
+          id: firstSale.id,
+          created_at: firstSale.created_at,
+          total: firstSale.total,
+          items: firstSale.sale_items?.length || 0
+        });
       }
 
       // Filter by category if needed (client-side)
@@ -163,10 +177,12 @@ export function useSales(options: UseSalesOptions = {}) {
         });
       }
 
+      console.log('🎯 [FETCH] After client-side filters:', filteredData.length, 'sales');
+
       setSales(filteredData as SaleWithDetails[]);
       setStatistics(calculateStatistics(filteredData as SaleWithDetails[]));
     } catch (err) {
-      console.error('Error fetching sales:', err);
+      console.error('❌ [FETCH] Error fetching sales:', err);
       setError(err instanceof Error ? err.message : 'Error al cargar ventas');
     } finally {
       setLoading(false);
@@ -174,13 +190,25 @@ export function useSales(options: UseSalesOptions = {}) {
   }, [user?.club?.id, filters, calculateStatistics]);
 
   /**
-   * Subscribe to realtime updates for sale and sale_items tables
+   * Create a ref to always have the latest fetchSales without causing re-subscriptions
+   */
+  const fetchSalesRef = useRef(fetchSales);
+  useEffect(() => {
+    fetchSalesRef.current = fetchSales;
+  }, [fetchSales]);
+
+  /**
+   * Subscribe to realtime updates for sale table
+   * Note: We only listen to 'sale' table because sale_items are created
+   * in the same transaction, so when sale is inserted, items are already there
    */
   useEffect(() => {
     if (!enableRealtime || !user?.club?.id) return;
 
+    console.log('🔴 [REALTIME] Subscribing to sales changes for club:', user.club.id);
+
     const channel = supabase
-      .channel('sales-changes')
+      .channel(`sales-realtime-${user.club.id}`)
       .on(
         'postgres_changes',
         {
@@ -189,31 +217,27 @@ export function useSales(options: UseSalesOptions = {}) {
           table: 'sale',
           filter: `club_id=eq.${user.club.id}`,
         },
-        () => {
-          // Refetch sales when changes occur in sale table
-          fetchSales();
+        (payload: any) => {
+          console.log('🟢 [REALTIME] Sale change detected:', payload.eventType, payload.new?.id || payload.old?.id);
+          // Add a small delay to ensure sale_items are fully committed
+          setTimeout(() => {
+            fetchSalesRef.current();
+          }, 200);
         }
       )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'sale_items',
-        },
-        () => {
-          // Refetch sales when changes occur in sale_items table
-          // Note: We listen to all sale_items changes, but filtering happens
-          // on the sale table via RLS policies
-          fetchSales();
+      .subscribe((status, err) => {
+        if (err) {
+          console.error('❌ [REALTIME] Subscription error:', err);
+        } else {
+          console.log('🔵 [REALTIME] Subscription status:', status);
         }
-      )
-      .subscribe();
+      });
 
     return () => {
+      console.log('🔴 [REALTIME] Unsubscribing from sales changes');
       supabase.removeChannel(channel);
     };
-  }, [enableRealtime, user?.club?.id, fetchSales]);
+  }, [enableRealtime, user?.club?.id]);
 
   /**
    * Initial fetch

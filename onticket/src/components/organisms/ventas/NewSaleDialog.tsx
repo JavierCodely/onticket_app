@@ -34,7 +34,8 @@ import {
   ShoppingCart as CartIcon,
   Minus,
   Plus,
-  Trash2
+  Trash2,
+  RefreshCw
 } from 'lucide-react';
 import type { Producto, Promocion, ComboWithProducts, Personal, MetodoPago, CategoriaProducto } from '@/types/database';
 import type { CurrencyCode } from '@/types/currency';
@@ -52,6 +53,9 @@ interface NewSaleDialogProps {
   editingSale?: any | null;
   onDeleteSale?: (saleId: string) => Promise<void>;
   autoSelectCurrentUser?: boolean;
+  defaultEmpleadoId?: string; // Pre-select a specific employee (for bartender mode)
+  isBartender?: boolean; // Hide employee selector for bartender role
+  onRefreshData?: () => Promise<void>; // Refresh products, promotions, combos
 }
 
 type ViewMode = 'products' | 'promotions' | 'combos';
@@ -79,6 +83,9 @@ export function NewSaleDialog({
   editingSale = null,
   onDeleteSale,
   autoSelectCurrentUser = false,
+  defaultEmpleadoId,
+  isBartender = false,
+  onRefreshData,
 }: NewSaleDialogProps) {
   const { user } = useAuth();
   const { defaultCurrency } = useCurrency();
@@ -106,6 +113,7 @@ export function NewSaleDialog({
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('products');
   const [selectedCategory, setSelectedCategory] = useState<CategoriaProducto | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -240,8 +248,12 @@ export function NewSaleDialog({
         // NEW SALE MODE: Reset everything
         clearCart();
 
-        // Auto-select current user if autoSelectCurrentUser is true
-        if (autoSelectCurrentUser && user?.id) {
+        // Auto-select employee based on props
+        if (defaultEmpleadoId) {
+          // Use defaultEmpleadoId if provided (bartender mode)
+          setEmpleado(defaultEmpleadoId);
+        } else if (autoSelectCurrentUser && user?.id) {
+          // Auto-select current user if autoSelectCurrentUser is true
           const currentEmpleado = empleados.find(emp => emp.user_id === user.id);
           if (currentEmpleado) {
             setEmpleado(currentEmpleado.id);
@@ -263,7 +275,7 @@ export function NewSaleDialog({
         setMontoTransferenciaError('');
       }
     }
-  }, [open, clearCart, setEmpleado, productos, promociones, combos, editingSale, addProduct, addCombo, changeMetodoPago, changeCurrency, autoSelectCurrentUser, user, empleados]);
+  }, [open, clearCart, setEmpleado, productos, promociones, combos, editingSale, addProduct, addCombo, changeMetodoPago, changeCurrency, autoSelectCurrentUser, defaultEmpleadoId, user, empleados]);
 
   // Clear cart when employee changes (to recalculate prices based on new employee's role)
   // Skip this behavior when editing a sale
@@ -290,34 +302,50 @@ export function NewSaleDialog({
 
   // Subscribe to realtime stock updates
   useEffect(() => {
-    if (!open) return;
+    if (!open || !user?.club?.id) return;
+
+    console.log('🛒 [MODAL] Subscribing to product stock changes for club:', user.club.id);
 
     const channel = supabase
-      .channel('productos_stock_changes')
+      .channel(`productos_stock_changes_${user.club.id}`)
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'UPDATE',
           schema: 'public',
           table: 'productos',
+          filter: `club_id=eq.${user.club.id}`,
         },
         (payload) => {
-          if (payload.eventType === 'UPDATE' || payload.eventType === 'INSERT') {
-            const updated = payload.new as Producto;
-            setRealtimeStock((prev) => {
-              const newMap = new Map(prev);
-              newMap.set(updated.id, updated.stock);
-              return newMap;
-            });
-          }
+          const updated = payload.new as Producto;
+          console.log('📦 [MODAL] Product stock updated:', {
+            id: updated.id,
+            nombre: updated.nombre,
+            newStock: updated.stock
+          });
+
+          setRealtimeStock((prev) => {
+            const oldStock = prev.get(updated.id);
+            console.log(`   └─ ${updated.nombre}: ${oldStock} → ${updated.stock}`);
+            const newMap = new Map(prev);
+            newMap.set(updated.id, updated.stock);
+            return newMap;
+          });
         }
       )
-      .subscribe();
+      .subscribe((status, err) => {
+        if (err) {
+          console.error('❌ [MODAL] Stock subscription error:', err);
+        } else {
+          console.log('🔵 [MODAL] Stock subscription status:', status);
+        }
+      });
 
     return () => {
+      console.log('🔴 [MODAL] Unsubscribing from product stock changes');
       supabase.removeChannel(channel);
     };
-  }, [open]);
+  }, [open, user?.club?.id]);
 
   // Filter bartenders
   const currentUser = empleados.find((emp) => emp.user_id === user?.id);
@@ -864,9 +892,47 @@ export function NewSaleDialog({
       onOpenChange(false);
     } catch (error) {
       console.error('Error creating sale:', error);
-      toast.error(error instanceof Error ? error.message : 'Error al realizar la venta');
+
+      // Handle specific error types
+      if (error instanceof Error) {
+        const message = error.message;
+
+        // Stock insufficient error (from our validation)
+        if (message.includes('Stock insuficiente')) {
+          toast.error(message, { duration: 5000 });
+        }
+        // Database constraint error (race condition fallback)
+        else if (message.includes('check_stock_non_negative') || message.includes('stock')) {
+          toast.error('⚠️ Stock insuficiente. Otro usuario compró este producto al mismo tiempo. Por favor recarga el modal.', { duration: 6000 });
+          // Trigger refetch to update stock
+          setTimeout(() => {
+            onSaleCreated();
+          }, 1000);
+        }
+        // Generic error
+        else {
+          toast.error(message);
+        }
+      } else {
+        toast.error('Error al realizar la venta');
+      }
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleRefresh = async () => {
+    if (!onRefreshData) return;
+
+    setIsRefreshing(true);
+    try {
+      await onRefreshData();
+      toast.success('Datos actualizados correctamente');
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+      toast.error('Error al actualizar datos');
+    } finally {
+      setIsRefreshing(false);
     }
   };
 
@@ -895,7 +961,21 @@ export function NewSaleDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="!max-w-[98vw] !w-[98vw] !h-[98vh] !min-h-[98vh] p-0 flex flex-col">
         <DialogHeader className="p-4 md:p-6 pb-0 shrink-0">
-          <DialogTitle className="text-2xl md:text-3xl">{editingSale ? 'Editar Venta' : 'Nueva Venta'}</DialogTitle>
+          <div className="flex items-center justify-between">
+            <DialogTitle className="text-2xl md:text-3xl">{editingSale ? 'Editar Venta' : 'Nueva Venta'}</DialogTitle>
+            {onRefreshData && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                className="gap-2"
+              >
+                <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                {isRefreshing ? 'Actualizando...' : 'Actualizar datos'}
+              </Button>
+            )}
+          </div>
           <DialogDescription className="text-base md:text-lg">
             {editingSale
               ? 'Modifica los productos, cantidades o detalles de la venta'
@@ -908,35 +988,37 @@ export function NewSaleDialog({
           {/* Left side - Employee, Payment, and Products */}
           <div className="flex-1 flex flex-col gap-2 md:gap-3 overflow-hidden">
             {/* Employee, Payment Method and Currency - ALL IN ONE ROW */}
-            <div className="grid grid-cols-3 gap-2 md:gap-3 shrink-0">
-              {/* Employee Selector */}
-              <div className="space-y-1.5 md:space-y-2">
-                <Label htmlFor="empleado-select" className="flex items-center gap-1.5 md:gap-2 text-lg md:text-xl font-semibold">
-                  <UserCircle className="h-5 w-5 md:h-6 md:w-6" />
-                  Empleado
-                </Label>
-                <select
-                  id="empleado-select"
-                  value={empleadoId || ''}
-                  onChange={(e) => setEmpleado(e.target.value || null)}
-                disabled={isSubmitting}
-                  className="flex h-12 md:h-14 w-full items-center justify-between rounded-md border-2 border-input bg-background px-3 py-2 text-lg md:text-xl font-medium ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-all hover:border-primary/50"
-                >
-                  <option value="">Seleccionar</option>
-                  {currentUser && (
-                    <option value={currentUser.id}>
-                      {currentUser.nombre} {currentUser.apellido} (Yo)
-                    </option>
-                  )}
-                  {bartenders
-                    .filter((emp) => emp.user_id !== user?.id)
-                    .map((empleado) => (
-                      <option key={empleado.id} value={empleado.id}>
-                        {empleado.nombre} {empleado.apellido}
+            <div className={`grid ${isBartender ? 'grid-cols-2' : 'grid-cols-3'} gap-2 md:gap-3 shrink-0`}>
+              {/* Employee Selector - Hidden for bartenders */}
+              {!isBartender && (
+                <div className="space-y-1.5 md:space-y-2">
+                  <Label htmlFor="empleado-select" className="flex items-center gap-1.5 md:gap-2 text-lg md:text-xl font-semibold">
+                    <UserCircle className="h-5 w-5 md:h-6 md:w-6" />
+                    Empleado
+                  </Label>
+                  <select
+                    id="empleado-select"
+                    value={empleadoId || ''}
+                    onChange={(e) => setEmpleado(e.target.value || null)}
+                    disabled={isSubmitting}
+                    className="flex h-12 md:h-14 w-full items-center justify-between rounded-md border-2 border-input bg-background px-3 py-2 text-lg md:text-xl font-medium ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-all hover:border-primary/50"
+                  >
+                    <option value="">Seleccionar</option>
+                    {currentUser && (
+                      <option value={currentUser.id}>
+                        {currentUser.nombre} {currentUser.apellido} (Yo)
                       </option>
-                    ))}
-                </select>
-              </div>
+                    )}
+                    {bartenders
+                      .filter((emp) => emp.user_id !== user?.id)
+                      .map((empleado) => (
+                        <option key={empleado.id} value={empleado.id}>
+                          {empleado.nombre} {empleado.apellido}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              )}
 
               {/* Payment Method */}
               <div className="space-y-1.5 md:space-y-2">
