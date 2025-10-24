@@ -137,14 +137,28 @@ export function useSales(options: UseSalesOptions = {}) {
       }
 
       console.log('✅ [FETCH] Query returned', data?.length || 0, 'sales');
+      console.log('🔍 [FETCH] Active filters:', {
+        fecha_desde: filters?.fecha_desde,
+        fecha_hasta: filters?.fecha_hasta,
+        personal_id: filters?.personal_id,
+        metodo_pago: filters?.metodo_pago,
+        moneda: filters?.moneda,
+        categoria: filters?.categoria,
+        producto_id: filters?.producto_id,
+        rol: filters?.rol
+      });
+
       if (data && data.length > 0) {
         const firstSale = data[0] as any;
         console.log('📝 [FETCH] Most recent sale:', {
           id: firstSale.id,
           created_at: firstSale.created_at,
+          personal_id: firstSale.personal_id,
           total: firstSale.total,
           items: firstSale.sale_items?.length || 0
         });
+      } else {
+        console.log('⚠️ [FETCH] No sales found with current filters');
       }
 
       // Filter by category if needed (client-side)

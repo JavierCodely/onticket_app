@@ -42,7 +42,8 @@ export function VentasPage() {
 
     console.log('📅 [FILTERS] Initializing date filters (UTC):', {
       startOfDay: startOfDay.toISOString(),
-      endOfDay: endOfDay.toISOString()
+      endOfDay: endOfDay.toISOString(),
+      personal_id: user?.personal?.id
     });
 
     return {
