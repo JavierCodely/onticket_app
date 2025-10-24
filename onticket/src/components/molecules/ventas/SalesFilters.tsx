@@ -76,10 +76,10 @@ export function SalesFilters({
   };
 
   const clearFilters = () => {
-    // Reset to today's date
+    // Reset to today's date in UTC to avoid timezone issues
     const today = new Date();
-    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0);
-    const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
+    const startOfDay = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate(), 0, 0, 0));
+    const endOfDay = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate(), 23, 59, 59));
 
     const todayFilters: SaleFilters = {
       fecha_desde: startOfDay.toISOString(),
@@ -164,12 +164,12 @@ export function SalesFilters({
                 onChange={(e) => {
                   const dateValue = e.target.value;
                   if (dateValue) {
-                    const isoDate = new Date(dateValue + 'T00:00:00').toISOString();
+                    // Parse date as UTC to avoid timezone issues
+                    const [year, month, day] = dateValue.split('-').map(Number);
+                    const isoDate = new Date(Date.UTC(year, month - 1, day, 0, 0, 0)).toISOString();
 
-                    // Auto-update fecha_hasta to the next day
-                    const nextDay = new Date(dateValue);
-                    nextDay.setDate(nextDay.getDate() + 1);
-                    const nextDayISO = new Date(nextDay.toISOString().split('T')[0] + 'T23:59:59').toISOString();
+                    // Auto-update fecha_hasta to the same day end
+                    const nextDayISO = new Date(Date.UTC(year, month - 1, day, 23, 59, 59)).toISOString();
 
                     // Update both dates at once
                     const newFilters = {
@@ -196,7 +196,9 @@ export function SalesFilters({
                 onChange={(e) => {
                   const dateValue = e.target.value;
                   if (dateValue) {
-                    const isoDate = new Date(dateValue + 'T23:59:59').toISOString();
+                    // Parse date as UTC to avoid timezone issues
+                    const [year, month, day] = dateValue.split('-').map(Number);
+                    const isoDate = new Date(Date.UTC(year, month - 1, day, 23, 59, 59)).toISOString();
                     handleFilterChange('fecha_hasta', isoDate);
                   } else {
                     handleFilterChange('fecha_hasta', undefined);
