@@ -222,7 +222,12 @@ export function useSales(options: UseSalesOptions = {}) {
     console.log('🔴 [REALTIME] Subscribing to sales changes for club:', user.club.id);
 
     const channel = supabase
-      .channel(`sales-realtime-${user.club.id}`)
+      .channel(`sales-realtime-${user.club.id}`, {
+        config: {
+          broadcast: { self: true }, // Receive own broadcasts
+          presence: { key: user.club.id }, // Use club_id as presence key
+        },
+      })
       .on(
         'postgres_changes',
         {
@@ -242,8 +247,16 @@ export function useSales(options: UseSalesOptions = {}) {
       .subscribe((status, err) => {
         if (err) {
           console.error('❌ [REALTIME] Subscription error:', err);
-        } else {
-          console.log('🔵 [REALTIME] Subscription status:', status);
+        }
+        console.log('🔵 [REALTIME] Subscription status:', status);
+
+        // Explicitly log when subscription is established
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ [REALTIME] Successfully subscribed to sales channel');
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          console.error('❌ [REALTIME] Channel error or timeout. Status:', status);
+        } else if (status === 'CLOSED') {
+          console.warn('⚠️ [REALTIME] Channel closed');
         }
       });
 
