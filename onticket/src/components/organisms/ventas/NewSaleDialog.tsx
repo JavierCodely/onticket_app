@@ -129,6 +129,23 @@ export function NewSaleDialog({
   const selectedEmpleado = empleados.find(emp => emp.id === empleadoId);
   const isSelectedEmpleadoAdmin = selectedEmpleado?.rol === 'Admin';
 
+  // Auto-refresh data when modal opens (separate effect to avoid loop)
+  useEffect(() => {
+    if (open && onRefreshData) {
+      setIsRefreshing(true);
+      onRefreshData()
+        .then(() => {
+          console.log('📊 [MODAL] Data refreshed automatically on open');
+        })
+        .catch((error) => {
+          console.error('❌ [MODAL] Error refreshing data on open:', error);
+        })
+        .finally(() => {
+          setIsRefreshing(false);
+        });
+    }
+  }, [open]); // Only depend on 'open' to avoid infinite loop
+
   // Reset when dialog opens OR load editing sale
   useEffect(() => {
     if (open) {
