@@ -42,9 +42,16 @@ export const useProductos = (user: User | null) => {
   useEffect(() => {
     if (!user) return;
 
-    // Create realtime channel
+    console.log('🔴 [REALTIME] Subscribing to productos changes for club:', user.club.id);
+
+    // Create realtime channel with configuration
     const channel = supabase
-      .channel('productos-changes')
+      .channel(`productos-changes-${user.club.id}`, {
+        config: {
+          broadcast: { self: true },
+          presence: { key: user.club.id },
+        },
+      })
       .on(
         'postgres_changes',
         {
@@ -54,7 +61,7 @@ export const useProductos = (user: User | null) => {
           filter: `club_id=eq.${user.club.id}`, // Only listen to products from user's club
         },
         (payload) => {
-          console.log('Producto change detected:', payload);
+          console.log('🟢 [REALTIME] Producto change detected:', payload.eventType, (payload.new as Producto)?.id || (payload.old as Producto)?.id);
 
           if (payload.eventType === 'INSERT') {
             // Add new product to the list
@@ -68,7 +75,7 @@ export const useProductos = (user: User | null) => {
             setProductos((prev) =>
               prev.map((p) => (p.id === payload.new.id ? (payload.new as Producto) : p))
             );
-            
+
             // Show toast only if stock changed
             const oldStock = (payload.old as Producto).stock;
             const newStock = (payload.new as Producto).stock;
@@ -88,10 +95,22 @@ export const useProductos = (user: User | null) => {
           }
         }
       )
-      .subscribe();
+      .subscribe((status, err) => {
+        if (err) {
+          console.error('❌ [REALTIME] Productos subscription error:', err);
+        }
+        console.log('🔵 [REALTIME] Productos subscription status:', status);
+
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ [REALTIME] Successfully subscribed to productos channel');
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          console.error('❌ [REALTIME] Productos channel error or timeout. Status:', status);
+        }
+      });
 
     // Cleanup subscription on unmount
     return () => {
+      console.log('🔴 [REALTIME] Unsubscribing from productos changes');
       supabase.removeChannel(channel);
     };
   }, [user]);

@@ -32,6 +32,9 @@ export const supabase: SupabaseClient<Database> = createClient<Database>(supabas
     params: {
       eventsPerSecond: 10,
     },
+    // Configuración optimizada para Vercel/producción
+    timeout: 30000, // 30 segundos timeout
+    heartbeatIntervalMs: 15000, // Heartbeat cada 15 segundos para mantener conexión
   },
   global: {
     headers: {
